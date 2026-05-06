@@ -1,0 +1,28 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - DB_PATH=/data/cups.db
+    env_file:
+      - .env
+    volumes:
+      - db_data:/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    environment:
+      - API_PROXY_TARGET=http://backend:3001
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  db_data:

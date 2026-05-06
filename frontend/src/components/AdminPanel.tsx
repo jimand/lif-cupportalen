@@ -87,29 +87,139 @@ function CupForm({
   );
 }
 
-function PendingTab({ cups, onRefresh }: { cups: Cup[]; onRefresh: () => void }) {
-  const pending = cups.filter((c) => c.status === 'pending');
+function PendingReviewDialog({
+  cup,
+  onClose,
+  onRefresh,
+}: {
+  cup: Cup;
+  onClose: () => void;
+  onRefresh: () => void;
+}) {
+  const [form, setForm] = useState({
+    name: cup.name,
+    location: cup.location,
+    start_date: cup.start_date,
+    end_date: cup.end_date || '',
+    age_classes: cup.age_classes,
+    url: cup.url || '',
+    description: cup.description || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [approving, setApproving] = useState(false);
 
-  async function approve(id: number) {
+  function set(field: string, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  async function handleSave() {
+    setSaving(true);
     try {
-      await api.admin.approveCup(id);
+      await api.admin.updateCup(cup.id, form);
+      toast({ title: 'Sparad', description: 'Ändringarna är sparade.' });
+      onRefresh();
+    } catch {
+      toast({ variant: 'destructive', title: 'Fel', description: 'Kunde inte spara.' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleApprove() {
+    setApproving(true);
+    try {
+      await api.admin.updateCup(cup.id, form);
+      await api.admin.approveCup(cup.id);
       toast({ title: 'Godkänd', description: 'Cupen är nu synlig för alla.' });
+      onClose();
       onRefresh();
     } catch {
       toast({ variant: 'destructive', title: 'Fel', description: 'Kunde inte godkänna cupen.' });
+    } finally {
+      setApproving(false);
     }
   }
 
-  async function remove(id: number) {
+  async function handleDelete() {
     if (!confirm('Är du säker på att du vill radera cupen?')) return;
     try {
-      await api.admin.deleteCup(id);
-      toast({ title: 'Raderad', description: 'Cupen har raderats.' });
+      await api.admin.deleteCup(cup.id);
+      toast({ title: 'Raderad' });
+      onClose();
       onRefresh();
     } catch {
-      toast({ variant: 'destructive', title: 'Fel', description: 'Kunde inte radera cupen.' });
+      toast({ variant: 'destructive', title: 'Fel', description: 'Kunde inte radera.' });
     }
   }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Granska förslag</DialogTitle>
+        </DialogHeader>
+
+        {cup.source_email && (
+          <div className="text-xs text-muted-foreground bg-muted rounded px-3 py-2">
+            Inskickat av: {cup.source_email}
+          </div>
+        )}
+
+        <div className="space-y-3 mt-1">
+          <div className="space-y-1">
+            <Label>Namn</Label>
+            <Input value={form.name} onChange={(e) => set('name', e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Ort</Label>
+              <Input value={form.location} onChange={(e) => set('location', e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Åldersklasser</Label>
+              <Input value={form.age_classes} onChange={(e) => set('age_classes', e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Startdatum</Label>
+              <Input type="date" value={form.start_date} onChange={(e) => set('start_date', e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Slutdatum</Label>
+              <Input type="date" value={form.end_date} onChange={(e) => set('end_date', e.target.value)} />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label>Länk</Label>
+            <Input type="url" value={form.url} onChange={(e) => set('url', e.target.value)} placeholder="https://..." />
+          </div>
+          <div className="space-y-1">
+            <Label>Beskrivning</Label>
+            <Textarea value={form.description} onChange={(e) => set('description', e.target.value)} rows={4} />
+          </div>
+        </div>
+
+        <div className="flex justify-between gap-2 pt-2">
+          <Button variant="destructive" size="sm" onClick={handleDelete} className="gap-1">
+            <Trash2 className="h-3.5 w-3.5" /> Radera
+          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleSave} disabled={saving || approving}>
+              {saving ? 'Sparar...' : 'Spara ändringar'}
+            </Button>
+            <Button onClick={handleApprove} disabled={saving || approving} className="bg-green-600 hover:bg-green-700 gap-1">
+              <Check className="h-4 w-4" />
+              {approving ? 'Godkänner...' : 'Godkänn'}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PendingTab({ cups, onRefresh }: { cups: Cup[]; onRefresh: () => void }) {
+  const pending = cups.filter((c) => c.status === 'pending');
+  const [reviewCup, setReviewCup] = useState<Cup | null>(null);
 
   if (pending.length === 0) {
     return <p className="text-muted-foreground text-center py-8">Inga väntande cuper.</p>;
@@ -118,25 +228,35 @@ function PendingTab({ cups, onRefresh }: { cups: Cup[]; onRefresh: () => void })
   return (
     <div className="space-y-3">
       {pending.map((cup) => (
-        <div key={cup.id} className="border rounded-lg p-4 space-y-2">
+        <div key={cup.id} className="border rounded-lg p-4">
           <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="font-medium">{cup.name}</p>
-              <p className="text-sm text-muted-foreground">{cup.location} · {formatDateRange(cup.start_date, cup.end_date)}</p>
+            <div className="min-w-0">
+              <p className="font-medium truncate">{cup.name}</p>
+              <p className="text-sm text-muted-foreground">
+                {cup.location} · {formatDateRange(cup.start_date, cup.end_date)}
+              </p>
               <p className="text-sm text-muted-foreground">{cup.age_classes}</p>
-              {cup.source_email && <p className="text-xs text-muted-foreground mt-1">Källa: {cup.source_email}</p>}
+              {cup.description && (
+                <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{cup.description}</p>
+              )}
+              {cup.source_email && (
+                <p className="text-xs text-muted-foreground mt-1">Källa: {cup.source_email}</p>
+              )}
             </div>
-            <div className="flex gap-2 shrink-0">
-              <Button size="sm" onClick={() => approve(cup.id)} className="bg-green-600 hover:bg-green-700 gap-1">
-                <Check className="h-3.5 w-3.5" /> Godkänn
-              </Button>
-              <Button size="sm" variant="destructive" onClick={() => remove(cup.id)} className="gap-1">
-                <Trash2 className="h-3.5 w-3.5" /> Radera
-              </Button>
-            </div>
+            <Button size="sm" onClick={() => setReviewCup(cup)} className="bg-[#CC0000] hover:bg-[#AA0000] shrink-0 gap-1">
+              <Pencil className="h-3.5 w-3.5" /> Granska
+            </Button>
           </div>
         </div>
       ))}
+
+      {reviewCup && (
+        <PendingReviewDialog
+          cup={reviewCup}
+          onClose={() => setReviewCup(null)}
+          onRefresh={onRefresh}
+        />
+      )}
     </div>
   );
 }

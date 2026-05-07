@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { api, type Cup, type EmailJob } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
 import { Check, Pencil, Trash2, Mail, Loader2, RefreshCw } from 'lucide-react';
-import { formatDateRange } from '@/lib/utils';
+import { formatDateRange, normalizeUrl } from '@/lib/utils';
 import { AgeSelect } from '@/components/AgeSelect';
 
 function CupForm({
@@ -71,7 +71,7 @@ function CupForm({
         </div>
         <div className="space-y-1 col-span-2">
           <Label>Länk</Label>
-          <Input type="url" value={form.url} onChange={(e) => set('url', e.target.value)} placeholder="https://..." />
+          <Input type="text" value={form.url} onChange={(e) => set('url', e.target.value)} placeholder="t.ex. ulvacupen.se" />
         </div>
         <div className="space-y-1 col-span-2">
           <Label>Beskrivning</Label>
@@ -113,10 +113,14 @@ function PendingReviewDialog({
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  function normalizedForm() {
+    return { ...form, url: normalizeUrl(form.url) };
+  }
+
   async function handleSave() {
     setSaving(true);
     try {
-      await api.admin.updateCup(cup.id, form);
+      await api.admin.updateCup(cup.id, normalizedForm());
       toast({ title: 'Sparad', description: 'Ändringarna är sparade.' });
       onRefresh();
     } catch {
@@ -129,7 +133,7 @@ function PendingReviewDialog({
   async function handleApprove() {
     setApproving(true);
     try {
-      await api.admin.updateCup(cup.id, form);
+      await api.admin.updateCup(cup.id, normalizedForm());
       await api.admin.approveCup(cup.id);
       toast({ title: 'Godkänd', description: 'Cupen är nu synlig för alla.' });
       onClose();
@@ -192,7 +196,7 @@ function PendingReviewDialog({
           </div>
           <div className="space-y-1">
             <Label>Länk</Label>
-            <Input type="url" value={form.url} onChange={(e) => set('url', e.target.value)} placeholder="https://..." />
+            <Input type="text" value={form.url} onChange={(e) => set('url', e.target.value)} placeholder="t.ex. ulvacupen.se" />
           </div>
           <div className="space-y-1">
             <Label>Beskrivning</Label>
@@ -466,7 +470,7 @@ function EmailJobsTab() {
               </div>
               <div className="space-y-1">
                 <Label>Länk</Label>
-                <Input type="url" value={createForm.url} onChange={(e) => setCreateForm((p: any) => ({ ...p, url: e.target.value }))} />
+                <Input type="text" value={createForm.url} onChange={(e) => setCreateForm((p: any) => ({ ...p, url: e.target.value }))} placeholder="t.ex. ulvacupen.se" />
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setSelectedJob(null)}>Avbryt</Button>

@@ -15,3 +15,10 @@ export function formatDateRange(startDate: string, endDate?: string): string {
   if (!endDate || endDate === startDate) return formatDate(startDate);
   return `${formatDate(startDate)} – ${formatDate(endDate)}`;
 }
+
+export function normalizeUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}

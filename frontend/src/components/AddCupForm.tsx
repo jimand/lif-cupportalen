@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { api } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
 import { AgeSelect } from '@/components/AgeSelect';
+import { normalizeUrl } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 
 interface FormData {
@@ -41,7 +42,6 @@ export function AddCupForm() {
     if (!form.location.trim()) e.location = 'Ort krävs';
     if (!form.start_date) e.start_date = 'Startdatum krävs';
     if (!form.age_classes) e.age_classes = 'Välj minst en ålder';
-    if (form.url && !/^https?:\/\//.test(form.url)) e.url = 'Ogiltig URL (måste börja med http:// eller https://)';
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -57,7 +57,7 @@ export function AddCupForm() {
         start_date: form.start_date,
         end_date: form.end_date || undefined,
         age_classes: form.age_classes.trim(),
-        url: form.url.trim() || undefined,
+        url: normalizeUrl(form.url) || undefined,
         description: form.description.trim() || undefined,
       });
       toast({ title: 'Tack!', description: 'Cupen har skickats in och väntar på godkännande.' });
@@ -115,7 +115,7 @@ export function AddCupForm() {
 
           <div className="space-y-1">
             <Label htmlFor="url">Länk till cup</Label>
-            <Input id="url" type="url" value={form.url} onChange={(e) => set('url', e.target.value)} placeholder="https://..." />
+            <Input id="url" type="text" value={form.url} onChange={(e) => set('url', e.target.value)} placeholder="t.ex. ulvacupen.se" />
             {errors.url && <p className="text-xs text-destructive">{errors.url}</p>}
           </div>
 

@@ -12,9 +12,17 @@ const cupSchema = z.object({
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ogiltigt datumformat (ÅÅÅÅ-MM-DD)'),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')),
   age_classes: z.string().min(1, 'Åldersklasser krävs').max(500),
-  url: z.string().url('Ogiltig URL').optional().or(z.literal('')),
+  url: z.string().max(500).optional().or(z.literal('')),
   description: z.string().max(2000).optional(),
 });
+
+function normalizeUrl(url: string | undefined): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
 
 function getVoterToken(req: Request): string {
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
@@ -85,7 +93,7 @@ router.post('/', (req: Request, res: Response) => {
   const result = db.prepare(`
     INSERT INTO cups (name, location, start_date, end_date, age_classes, url, description, status)
     VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
-  `).run(name, location, start_date, end_date || null, age_classes, url || null, description || null);
+  `).run(name, location, start_date, end_date || null, age_classes, normalizeUrl(url), description || null);
 
   sendCupNotification(name).catch((err) =>
     console.error(`[${new Date().toISOString()}] Notifieringsmail misslyckades:`, err)

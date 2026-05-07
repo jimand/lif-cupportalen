@@ -13,10 +13,18 @@ const cupUpdateSchema = z.object({
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')),
   age_classes: z.string().min(1).max(500).optional(),
-  url: z.string().url().optional().or(z.literal('')),
+  url: z.string().max(500).optional().or(z.literal('')),
   description: z.string().max(2000).optional(),
   status: z.enum(['pending', 'approved']).optional(),
 });
+
+function normalizeUrl(url: string | undefined | null): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
 
 // GET /api/admin/cups – all cups including pending
 router.get('/cups', (_req: Request, res: Response) => {
@@ -57,7 +65,7 @@ router.put('/cups/:id', (req: Request, res: Response) => {
     data.start_date ?? null,
     'end_date' in data ? (data.end_date || null) : cup.end_date,
     data.age_classes ?? null,
-    'url' in data ? (data.url || null) : cup.url,
+    'url' in data ? normalizeUrl(data.url) : cup.url,
     'description' in data ? (data.description || null) : cup.description,
     data.status ?? null,
     req.params.id,
@@ -117,7 +125,7 @@ router.post('/email-jobs/:id/create-cup', (req: Request, res: Response) => {
     start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')),
     age_classes: z.string().min(1),
-    url: z.string().url().optional().or(z.literal('')),
+    url: z.string().max(500).optional().or(z.literal('')),
     description: z.string().optional(),
   });
 
@@ -132,7 +140,7 @@ router.post('/email-jobs/:id/create-cup', (req: Request, res: Response) => {
   const cupResult = db.prepare(`
     INSERT INTO cups (name, location, start_date, end_date, age_classes, url, description, source_email, status)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-  `).run(name, location, start_date, end_date || null, age_classes, url || null, description || null, job.sender);
+  `).run(name, location, start_date, end_date || null, age_classes, normalizeUrl(url), description || null, job.sender);
 
   const cupId = cupResult.lastInsertRowid;
 

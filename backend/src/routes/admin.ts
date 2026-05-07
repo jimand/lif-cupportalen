@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import db from '../services/db';
 import { requireAdmin } from '../middleware/auth';
@@ -16,7 +17,7 @@ const cupUpdateSchema = z.object({
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')),
   age_classes: z.string().min(1).max(500).optional(),
-  cup_type: z.string().max(20).optional().or(z.literal('')),
+  cup_type: z.string().max(200).optional().or(z.literal('')),
   url: z.string().max(500).optional().or(z.literal('')),
   description: z.string().max(2000).optional(),
   notes: z.string().max(2000).optional(),
@@ -173,7 +174,6 @@ router.post('/subscriptions', (req: Request, res: Response) => {
     res.status(400).json({ error: 'Ogiltig e-postadress' });
     return;
   }
-  const { randomUUID } = require('crypto');
   const token = randomUUID();
   const result = db.prepare(
     `INSERT OR IGNORE INTO subscriptions (email, token, status) VALUES (?, ?, 'confirmed')`
@@ -223,13 +223,18 @@ router.post('/subscriptions/:id/resend', (req: Request, res: Response) => {
 
 // GET /api/admin/email-jobs
 router.get('/email-jobs', (_req: Request, res: Response) => {
-  const jobs = db.prepare(`
-    SELECT ej.*, c.name as cup_name
-    FROM email_jobs ej
-    LEFT JOIN cups c ON ej.parsed_cup_id = c.id
-    ORDER BY ej.received_at DESC
-  `).all();
-  res.json(jobs);
+  try {
+    const jobs = db.prepare(`
+      SELECT ej.*, c.name as cup_name
+      FROM email_jobs ej
+      LEFT JOIN cups c ON ej.parsed_cup_id = c.id
+      ORDER BY ej.received_at DESC
+    `).all();
+    res.json(jobs);
+  } catch (err) {
+    console.error(`[${new Date().toISOString()}] Email-jobs fel:`, err);
+    res.status(500).json({ error: 'Kunde inte hämta e-postjobb' });
+  }
 });
 
 // POST /api/admin/email-jobs/:id/create-cup
@@ -246,7 +251,7 @@ router.post('/email-jobs/:id/create-cup', (req: Request, res: Response) => {
     start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')),
     age_classes: z.string().min(1),
-    cup_type: z.string().max(20).optional(),
+    cup_type: z.string().max(200).optional(),
     url: z.string().max(500).optional().or(z.literal('')),
     description: z.string().optional(),
   });

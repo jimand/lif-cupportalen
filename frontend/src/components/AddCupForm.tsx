@@ -101,7 +101,15 @@ export function AddCupForm() {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="start_date">Startdatum *</Label>
-              <Input id="start_date" type="date" value={form.start_date} onChange={(e) => set('start_date', e.target.value)} />
+              <Input id="start_date" type="date" value={form.start_date} onChange={(e) => {
+                const newStart = e.target.value;
+                setForm((prev) => ({
+                  ...prev,
+                  start_date: newStart,
+                  end_date: (!prev.end_date || prev.end_date === prev.start_date) ? newStart : prev.end_date,
+                }));
+                setErrors((prev) => ({ ...prev, start_date: undefined }));
+              }} />
               {errors.start_date && <p className="text-xs text-destructive">{errors.start_date}</p>}
             </div>
             <div className="space-y-1">

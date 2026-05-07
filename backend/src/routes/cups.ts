@@ -24,6 +24,7 @@ const cupSchema = z.object({
   cup_type: z.string().max(200).optional(),
   url: z.string().max(500).optional().or(z.literal('')),
   description: z.string().max(2000).optional(),
+  registration_deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')),
 });
 
 function normalizeUrl(url: string | undefined): string | null {
@@ -157,13 +158,12 @@ router.post('/', submitLimiter, (req: Request, res: Response) => {
     return;
   }
 
-  const { name, location, start_date, end_date, age_classes, url, description } = parsed.data;
+  const { name, location, start_date, end_date, age_classes, url, description, cup_type, registration_deadline } = parsed.data;
 
-  const { cup_type } = parsed.data;
   const result = db.prepare(`
-    INSERT INTO cups (name, location, start_date, end_date, age_classes, cup_type, url, description, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-  `).run(name, location, start_date, end_date || null, age_classes, cup_type || null, normalizeUrl(url), description || null);
+    INSERT INTO cups (name, location, start_date, end_date, age_classes, cup_type, url, description, registration_deadline, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+  `).run(name, location, start_date, end_date || null, age_classes, cup_type || null, normalizeUrl(url), description || null, registration_deadline || null);
 
   sendCupNotification(name).catch((err) =>
     console.error(`[${new Date().toISOString()}] Notifieringsmail misslyckades:`, err)

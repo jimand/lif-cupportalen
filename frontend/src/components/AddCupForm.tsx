@@ -20,11 +20,13 @@ interface FormData {
   cup_type: string;
   url: string;
   description: string;
+  registration_deadline: string;
 }
 
 const EMPTY: FormData = {
   name: '', location: '', start_date: '', end_date: '',
   age_classes: '', cup_type: '', url: '', description: '',
+  registration_deadline: '',
 };
 
 export function AddCupForm() {
@@ -115,6 +117,10 @@ export function AddCupForm() {
             <div className="space-y-1">
               <Label htmlFor="end_date">Slutdatum</Label>
               <Input id="end_date" type="date" value={form.end_date} onChange={(e) => set('end_date', e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="registration_deadline">Sista anmälningsdatum</Label>
+              <Input id="registration_deadline" type="date" value={form.registration_deadline} onChange={(e) => set('registration_deadline', e.target.value)} />
             </div>
           </div>
 

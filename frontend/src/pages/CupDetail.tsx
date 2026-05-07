@@ -58,12 +58,12 @@ export default function CupDetail() {
     }
   }
 
-  const ageClasses = cup?.age_classes
+  const ageClasses = (cup?.age_classes ?? '')
     .split(',')
     .map((s) => parseInt(s.trim()))
     .filter((n) => !isNaN(n))
     .sort((a, b) => a - b)
-    .map((n) => `${n} år`) ?? [];
+    .map((n) => `${n} år`);
 
   return (
     <div className="min-h-screen bg-white">

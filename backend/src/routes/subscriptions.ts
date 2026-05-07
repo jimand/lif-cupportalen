@@ -15,6 +15,14 @@ const subscribeLimiter = rateLimit({
   message: { error: 'För många försök, försök igen om en timme' },
 });
 
+const confirmLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'För många försök, försök igen om 15 minuter' },
+});
+
 // POST /api/subscriptions – double opt-in
 router.post('/subscriptions', subscribeLimiter, (req: Request, res: Response) => {
   const parsed = z.object({ email: z.string().email() }).safeParse(req.body);
@@ -24,7 +32,8 @@ router.post('/subscriptions', subscribeLimiter, (req: Request, res: Response) =>
   }
   const token = randomUUID();
   const result = db.prepare(
-    `INSERT OR IGNORE INTO subscriptions (email, token, status) VALUES (?, ?, 'pending')`
+    `INSERT OR IGNORE INTO subscriptions (email, token, status, token_expires_at)
+     VALUES (?, ?, 'pending', datetime('now', '+48 hours'))`
   ).run(parsed.data.email, token);
 
   if (result.changes > 0) {
@@ -37,11 +46,14 @@ router.post('/subscriptions', subscribeLimiter, (req: Request, res: Response) =>
 });
 
 // GET /api/subscriptions/confirm?token=xxx
-router.get('/subscriptions/confirm', (req: Request, res: Response) => {
+router.get('/subscriptions/confirm', confirmLimiter, (req: Request, res: Response) => {
   const token = String(req.query.token || '');
   if (!token) { res.status(400).send('<p>Ogiltig länk</p>'); return; }
 
-  const sub = db.prepare(`SELECT id, email FROM subscriptions WHERE token = ? AND status = 'pending'`).get(token) as any;
+  const sub = db.prepare(
+    `SELECT id, email, token_expires_at FROM subscriptions WHERE token = ? AND status = 'pending'`
+  ).get(token) as any;
+
   if (!sub) {
     res.status(400).send(`
       <html><body style="font-family:sans-serif;padding:2rem;max-width:500px;margin:0 auto">
@@ -52,7 +64,17 @@ router.get('/subscriptions/confirm', (req: Request, res: Response) => {
     return;
   }
 
-  db.prepare(`UPDATE subscriptions SET status = 'confirmed' WHERE id = ?`).run(sub.id);
+  if (sub.token_expires_at && new Date(sub.token_expires_at) < new Date()) {
+    res.status(400).send(`
+      <html><body style="font-family:sans-serif;padding:2rem;max-width:500px;margin:0 auto">
+        <h2>Länken har gått ut</h2>
+        <p>Bekräftelselänken är äldre än 48 timmar. Prenumerera igen på <a href="/">startsidan</a> för att få en ny länk.</p>
+      </body></html>
+    `);
+    return;
+  }
+
+  db.prepare(`UPDATE subscriptions SET status = 'confirmed', token_expires_at = NULL WHERE id = ?`).run(sub.id);
 
   sendWelcomeEmail(sub.email, token).catch((err) =>
     console.error(`[${new Date().toISOString()}] Välkomstmail misslyckades (${sub.email}):`, err)
@@ -67,7 +89,7 @@ router.get('/subscriptions/confirm', (req: Request, res: Response) => {
 });
 
 // GET /api/subscriptions/unsubscribe?token=xxx
-router.get('/subscriptions/unsubscribe', (req: Request, res: Response) => {
+router.get('/subscriptions/unsubscribe', confirmLimiter, (req: Request, res: Response) => {
   const token = String(req.query.token || '');
   if (!token) { res.status(400).send('<p>Ogiltig länk</p>'); return; }
 

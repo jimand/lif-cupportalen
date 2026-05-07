@@ -73,6 +73,7 @@ for (const col of [
   `ALTER TABLE cups ADD COLUMN cup_type TEXT`,
   `ALTER TABLE cups ADD COLUMN notes TEXT`,
   `ALTER TABLE subscriptions ADD COLUMN status TEXT DEFAULT 'confirmed'`,
+  `ALTER TABLE subscriptions ADD COLUMN token_expires_at TEXT`,
 ]) {
   try { db.exec(col); } catch {}
 }

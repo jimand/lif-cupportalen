@@ -15,7 +15,11 @@ RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
 
-RUN mkdir -p /data
+RUN mkdir -p /data && \
+    addgroup -S appgroup && adduser -S appuser -G appgroup && \
+    chown -R appuser:appgroup /app /data
+
+USER appuser
 
 EXPOSE 3001
 ENV NODE_ENV=production

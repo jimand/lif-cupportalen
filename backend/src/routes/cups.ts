@@ -21,7 +21,7 @@ const cupSchema = z.object({
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ogiltigt datumformat (ÅÅÅÅ-MM-DD)'),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')),
   age_classes: z.string().min(1, 'Åldersklasser krävs').max(500),
-  cup_type: z.string().max(20).optional(),
+  cup_type: z.string().max(200).optional(),
   url: z.string().max(500).optional().or(z.literal('')),
   description: z.string().max(2000).optional(),
 });

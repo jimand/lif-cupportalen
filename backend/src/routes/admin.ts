@@ -91,7 +91,8 @@ router.put('/cups/:id', (req: Request, res: Response) => {
 
   const parsed = cupUpdateSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: 'Ogiltiga uppgifter', details: parsed.error.flatten().fieldErrors });
+    console.error(`[${new Date().toISOString()}] Valideringsfel PUT /cups/${req.params.id}:`, parsed.error.flatten().fieldErrors);
+    res.status(400).json({ error: 'Ogiltiga fält' });
     return;
   }
 

@@ -29,15 +29,25 @@ router.get('/cups/:cupId/attachments', (req: Request, res: Response) => {
   res.json(attachments);
 });
 
-// GET /api/attachments/:id/file – public download/view
+// GET /api/attachments/:id/file – public for approved cups only
 router.get('/attachments/:id/file', (req: Request, res: Response) => {
   const att = db.prepare(`SELECT * FROM attachments WHERE id = ?`).get(req.params.id) as any;
   if (!att) { res.status(404).json({ error: 'Filen hittades inte' }); return; }
+
+  if (att.cup_id) {
+    const cup = db.prepare(`SELECT status FROM cups WHERE id = ?`).get(att.cup_id) as any;
+    if (!cup || cup.status !== 'approved') {
+      res.status(403).json({ error: 'Åtkomst nekad' });
+      return;
+    }
+  }
+
   const filePath = getFilePath(att.filename);
   if (!fs.existsSync(filePath)) { res.status(404).json({ error: 'Filen saknas på disk' }); return; }
   const inline = att.mime_type.startsWith('image/') || att.mime_type === 'application/pdf';
   res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename="${att.original_name}"`);
   res.setHeader('Content-Type', att.mime_type);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
   res.sendFile(filePath);
 });
 

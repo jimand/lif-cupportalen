@@ -13,6 +13,9 @@ import { startGmailPoller } from './services/gmail';
 
 if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET saknas i miljövariabler');
 if (!process.env.ADMIN_PASSWORD) throw new Error('ADMIN_PASSWORD saknas i miljövariabler');
+if (!process.env.FRONTEND_URL && process.env.NODE_ENV === 'production') {
+  throw new Error('FRONTEND_URL saknas i miljövariabler (krävs i produktion)');
+}
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
@@ -38,7 +41,11 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(err);
+  if (process.env.NODE_ENV === 'development') {
+    console.error(err);
+  } else {
+    console.error(`[${new Date().toISOString()}] Internt fel: ${err?.message}`);
+  }
   res.status(500).json({ error: 'Ett internt serverfel uppstod' });
 });
 

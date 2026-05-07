@@ -7,6 +7,11 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     ...options,
   });
 
+  if (res.status === 401 && path.startsWith('/admin')) {
+    window.location.href = '/admin';
+    throw new Error('Session utgången');
+  }
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: 'Okänt fel' }));
     throw new Error(body.error || `HTTP ${res.status}`);

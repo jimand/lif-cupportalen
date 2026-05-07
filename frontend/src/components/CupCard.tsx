@@ -17,8 +17,10 @@ export function CupCard({ cup, voted, onVoted }: CupCardProps) {
 
   const ageClasses = cup.age_classes
     .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
+    .map((s) => parseInt(s.trim()))
+    .filter((n) => !isNaN(n))
+    .sort((a, b) => a - b)
+    .map((n) => `${n} år`);
 
   async function handleVote() {
     if (voted || voting) return;

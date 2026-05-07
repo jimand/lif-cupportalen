@@ -10,6 +10,7 @@ import { api, type Cup, type EmailJob } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
 import { Check, Pencil, Trash2, Mail, Loader2, RefreshCw } from 'lucide-react';
 import { formatDateRange } from '@/lib/utils';
+import { AgeSelect } from '@/components/AgeSelect';
 
 function CupForm({
   cup,
@@ -56,9 +57,9 @@ function CupForm({
           <Label>Ort</Label>
           <Input value={form.location} onChange={(e) => set('location', e.target.value)} required />
         </div>
-        <div className="space-y-1">
-          <Label>Åldersklasser</Label>
-          <Input value={form.age_classes} onChange={(e) => set('age_classes', e.target.value)} required />
+        <div className="space-y-1 col-span-2">
+          <Label>Ålder</Label>
+          <AgeSelect value={form.age_classes} onChange={(v) => set('age_classes', v)} />
         </div>
         <div className="space-y-1">
           <Label>Startdatum</Label>
@@ -170,15 +171,16 @@ function PendingReviewDialog({
             <Label>Namn</Label>
             <Input value={form.name} onChange={(e) => set('name', e.target.value)} />
           </div>
+          <div className="space-y-1">
+            <Label>Ålder</Label>
+            <AgeSelect value={form.age_classes} onChange={(v) => set('age_classes', v)} />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>Ort</Label>
               <Input value={form.location} onChange={(e) => set('location', e.target.value)} />
             </div>
-            <div className="space-y-1">
-              <Label>Åldersklasser</Label>
-              <Input value={form.age_classes} onChange={(e) => set('age_classes', e.target.value)} />
-            </div>
+            <div className="space-y-1" />
             <div className="space-y-1">
               <Label>Startdatum</Label>
               <Input type="date" value={form.start_date} onChange={(e) => set('start_date', e.target.value)} />
@@ -443,15 +445,16 @@ function EmailJobsTab() {
                 <Label>Namn *</Label>
                 <Input value={createForm.name} onChange={(e) => setCreateForm((p: any) => ({ ...p, name: e.target.value }))} required />
               </div>
+              <div className="space-y-1">
+                <Label>Ålder</Label>
+                <AgeSelect value={createForm.age_classes} onChange={(v) => setCreateForm((p: any) => ({ ...p, age_classes: v }))} />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label>Ort *</Label>
                   <Input value={createForm.location} onChange={(e) => setCreateForm((p: any) => ({ ...p, location: e.target.value }))} required />
                 </div>
-                <div className="space-y-1">
-                  <Label>Åldersklasser *</Label>
-                  <Input value={createForm.age_classes} onChange={(e) => setCreateForm((p: any) => ({ ...p, age_classes: e.target.value }))} required />
-                </div>
+                <div className="space-y-1" />
                 <div className="space-y-1">
                   <Label>Startdatum *</Label>
                   <Input type="date" value={createForm.start_date} onChange={(e) => setCreateForm((p: any) => ({ ...p, start_date: e.target.value }))} required />

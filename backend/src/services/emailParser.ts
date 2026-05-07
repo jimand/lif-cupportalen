@@ -45,15 +45,38 @@ function extractUrl(text: string): string | undefined {
 }
 
 function extractAgeClasses(text: string): string | undefined {
-  const ageMatches = text.match(/\b[PFpf]\d{2}(?:\s*[,\/]\s*[PFpf]\d{2})*/g);
-  if (ageMatches && ageMatches.length > 0) {
-    return ageMatches.join(', ');
+  const ages = new Set<number>();
+  const currentYear = new Date().getFullYear();
+
+  // P10, F12, U14, G10 m.fl.
+  for (const m of text.matchAll(/\b[PFUGBpfugb](\d{1,2})\b/g)) {
+    const age = parseInt(m[1]);
+    if (age >= 7 && age <= 18) ages.add(age);
   }
 
-  const yearMatch = text.match(/\b(pojkar?|flickor?|ungdom)\s+\d{4}(?:\s*[-–]\s*\d{4})?\b/gi);
-  if (yearMatch) return yearMatch.join(', ');
+  // "10-12 år", "7–9 år"
+  for (const m of text.matchAll(/\b(\d{1,2})\s*[-–]\s*(\d{1,2})\s*år\b/gi)) {
+    const from = parseInt(m[1]);
+    const to = parseInt(m[2]);
+    for (let a = from; a <= to && a <= 18; a++) {
+      if (a >= 7) ages.add(a);
+    }
+  }
 
-  return undefined;
+  // "10 år", "12-åriga"
+  for (const m of text.matchAll(/\b(\d{1,2})\s*[-–]?\s*år/gi)) {
+    const age = parseInt(m[1]);
+    if (age >= 7 && age <= 18) ages.add(age);
+  }
+
+  // Födelseår: "2015", "2012" → räkna ut ålder
+  for (const m of text.matchAll(/\b(20\d{2})\b/g)) {
+    const age = currentYear - parseInt(m[1]);
+    if (age >= 7 && age <= 18) ages.add(age);
+  }
+
+  if (ages.size === 0) return undefined;
+  return Array.from(ages).sort((a, b) => a - b).join(',');
 }
 
 function extractLocation(text: string): string | undefined {

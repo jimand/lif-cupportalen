@@ -9,8 +9,7 @@ interface CupFilterProps {
   onChange: (filters: CupFilters) => void;
 }
 
-const AGE_CLASSES = ['P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'P12', 'P13', 'P14', 'P15', 'P16', 'P17', 'P18', 'P19',
-  'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19'];
+const AGES = Array.from({ length: 12 }, (_, i) => i + 7); // 7–18
 
 export function CupFilter({ filters, onChange }: CupFilterProps) {
   const hasActiveFilters = !!(filters.search || filters.age_class || filters.date_from || filters.date_to);
@@ -24,7 +23,7 @@ export function CupFilter({ filters, onChange }: CupFilterProps) {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Sök på namn, ort eller åldersklass..."
+          placeholder="Sök på namn eller ort..."
           value={filters.search || ''}
           onChange={(e) => onChange({ ...filters, search: e.target.value })}
           className="pl-9"
@@ -37,12 +36,12 @@ export function CupFilter({ filters, onChange }: CupFilterProps) {
           onValueChange={(v) => onChange({ ...filters, age_class: v === 'all' ? undefined : v })}
         >
           <SelectTrigger className="w-36">
-            <SelectValue placeholder="Åldersklass" />
+            <SelectValue placeholder="Ålder" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alla klasser</SelectItem>
-            {AGE_CLASSES.map((cls) => (
-              <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+            <SelectItem value="all">Alla åldrar</SelectItem>
+            {AGES.map((age) => (
+              <SelectItem key={age} value={String(age)}>{age} år</SelectItem>
             ))}
           </SelectContent>
         </Select>

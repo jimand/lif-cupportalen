@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import fs from 'fs';
+import jwt from 'jsonwebtoken';
 import db from '../services/db';
 import { saveFile, deleteFile, getFilePath } from '../services/storage';
 import { requireAdmin } from '../middleware/auth';
@@ -37,8 +38,10 @@ router.get('/attachments/:id/file', (req: Request, res: Response) => {
   if (att.cup_id) {
     const cup = db.prepare(`SELECT status FROM cups WHERE id = ?`).get(att.cup_id) as any;
     if (!cup || cup.status !== 'approved') {
-      res.status(403).json({ error: 'Åtkomst nekad' });
-      return;
+      const token = req.cookies?.admin_token;
+      let isAdmin = false;
+      try { if (token) { jwt.verify(token, process.env.JWT_SECRET!); isAdmin = true; } } catch {}
+      if (!isAdmin) { res.status(403).json({ error: 'Åtkomst nekad' }); return; }
     }
   }
 

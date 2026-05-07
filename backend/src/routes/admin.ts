@@ -2,7 +2,10 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import db from '../services/db';
 import { requireAdmin } from '../middleware/auth';
-import { sendCupNotification, sendSubscriberNotification, pollGmail } from '../services/gmail';
+import {
+  sendCupNotification, sendSubscriberNotification, pollGmail,
+  sendWelcomeEmail, sendUnsubscribeConfirmationEmail, sendConfirmationEmail,
+} from '../services/gmail';
 
 const router = Router();
 router.use(requireAdmin);
@@ -147,7 +150,7 @@ router.patch('/cups/:id/approve', (req: Request, res: Response) => {
   db.prepare(`UPDATE cups SET status = 'approved', updated_at = datetime('now') WHERE id = ?`).run(req.params.id);
   const updated = db.prepare(`SELECT * FROM cups WHERE id = ?`).get(req.params.id) as any;
 
-  const subscribers = db.prepare(`SELECT email, token FROM subscriptions`).all() as any[];
+  const subscribers = db.prepare(`SELECT email, token FROM subscriptions WHERE status = 'confirmed'`).all() as any[];
   for (const sub of subscribers) {
     sendSubscriberNotification(updated.name, updated.id, sub.email, sub.token).catch((err) =>
       console.error(`[${new Date().toISOString()}] Prenumerantmail misslyckades (${sub.email}):`, err)
@@ -155,6 +158,67 @@ router.patch('/cups/:id/approve', (req: Request, res: Response) => {
   }
 
   res.json(updated);
+});
+
+// GET /api/admin/subscriptions
+router.get('/subscriptions', (_req: Request, res: Response) => {
+  const subs = db.prepare(`SELECT id, email, status, created_at FROM subscriptions ORDER BY created_at DESC`).all();
+  res.json(subs);
+});
+
+// POST /api/admin/subscriptions – add directly as confirmed + send welcome email
+router.post('/subscriptions', (req: Request, res: Response) => {
+  const parsed = z.object({ email: z.string().email() }).safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Ogiltig e-postadress' });
+    return;
+  }
+  const { randomUUID } = require('crypto');
+  const token = randomUUID();
+  const result = db.prepare(
+    `INSERT OR IGNORE INTO subscriptions (email, token, status) VALUES (?, ?, 'confirmed')`
+  ).run(parsed.data.email, token);
+  if (result.changes === 0) {
+    res.status(409).json({ error: 'E-postadressen är redan registrerad' });
+    return;
+  }
+  sendWelcomeEmail(parsed.data.email, token).catch((err) =>
+    console.error(`[${new Date().toISOString()}] Välkomstmail misslyckades (${parsed.data.email}):`, err)
+  );
+  res.json({ ok: true });
+});
+
+// DELETE /api/admin/subscriptions/:id
+router.delete('/subscriptions/:id', (req: Request, res: Response) => {
+  const sub = db.prepare(`SELECT email FROM subscriptions WHERE id = ?`).get(req.params.id) as any;
+  if (!sub) {
+    res.status(404).json({ error: 'Prenumeranten hittades inte' });
+    return;
+  }
+  db.prepare(`DELETE FROM subscriptions WHERE id = ?`).run(req.params.id);
+  sendUnsubscribeConfirmationEmail(sub.email).catch((err) =>
+    console.error(`[${new Date().toISOString()}] Avprenumerationsmail misslyckades (${sub.email}):`, err)
+  );
+  res.json({ ok: true });
+});
+
+// POST /api/admin/subscriptions/:id/resend
+router.post('/subscriptions/:id/resend', (req: Request, res: Response) => {
+  const sub = db.prepare(`SELECT * FROM subscriptions WHERE id = ?`).get(req.params.id) as any;
+  if (!sub) {
+    res.status(404).json({ error: 'Prenumeranten hittades inte' });
+    return;
+  }
+  if (sub.status === 'pending') {
+    sendConfirmationEmail(sub.email, sub.token).catch((err) =>
+      console.error(`[${new Date().toISOString()}] Bekräftelsemail misslyckades (${sub.email}):`, err)
+    );
+  } else {
+    sendWelcomeEmail(sub.email, sub.token).catch((err) =>
+      console.error(`[${new Date().toISOString()}] Välkomstmail misslyckades (${sub.email}):`, err)
+    );
+  }
+  res.json({ ok: true });
 });
 
 // GET /api/admin/email-jobs

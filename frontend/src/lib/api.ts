@@ -55,6 +55,13 @@ export interface EmailJob {
   processed_at?: string;
 }
 
+export interface Subscription {
+  id: number;
+  email: string;
+  status: 'pending' | 'confirmed';
+  created_at: string;
+}
+
 export interface Attachment {
   id: number;
   original_name: string;
@@ -107,7 +114,7 @@ export const api = {
 
   subscriptions: {
     subscribe: (email: string) =>
-      request<{ ok: boolean }>('/subscriptions', {
+      request<{ ok: boolean; pending?: boolean }>('/subscriptions', {
         method: 'POST',
         body: JSON.stringify({ email }),
       }),
@@ -186,5 +193,18 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(data),
       }),
+
+    subscriptions: {
+      list: () => request<Subscription[]>('/admin/subscriptions'),
+      add: (email: string) =>
+        request<{ ok: boolean }>('/admin/subscriptions', {
+          method: 'POST',
+          body: JSON.stringify({ email }),
+        }),
+      remove: (id: number) =>
+        request<{ ok: boolean }>(`/admin/subscriptions/${id}`, { method: 'DELETE' }),
+      resend: (id: number) =>
+        request<{ ok: boolean }>(`/admin/subscriptions/${id}/resend`, { method: 'POST' }),
+    },
   },
 };

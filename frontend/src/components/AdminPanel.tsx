@@ -6,9 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { api, type Cup, type EmailJob, type Attachment, type Stats } from '@/lib/api';
+import { api, type Cup, type EmailJob, type Attachment, type Stats, type Subscription } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
-import { Check, Pencil, Trash2, Mail, Loader2, RefreshCw, Paperclip, Download } from 'lucide-react';
+import { Check, Pencil, Trash2, Mail, Loader2, RefreshCw, Paperclip, Download, UserPlus, Send } from 'lucide-react';
 import { formatDateRange, normalizeUrl } from '@/lib/utils';
 import { AgeSelect } from '@/components/AgeSelect';
 import { CupTypeSelect } from '@/components/CupTypeSelect';
@@ -632,6 +632,115 @@ function EmailJobsTab() {
   );
 }
 
+function SubscribersTab() {
+  const [subs, setSubs] = useState<Subscription[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState('');
+  const [adding, setAdding] = useState(false);
+
+  async function loadSubs() {
+    setLoading(true);
+    try { setSubs(await api.admin.subscriptions.list()); }
+    catch { toast({ variant: 'destructive', title: 'Fel', description: 'Kunde inte ladda prenumeranter.' }); }
+    finally { setLoading(false); }
+  }
+
+  useEffect(() => { loadSubs(); }, []);
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email) return;
+    setAdding(true);
+    try {
+      await api.admin.subscriptions.add(email);
+      toast({ title: 'Tillagd', description: `${email} är nu prenumerant.` });
+      setEmail('');
+      loadSubs();
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Fel', description: err.message });
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function handleRemove(sub: Subscription) {
+    if (!confirm(`Ta bort prenumeration för ${sub.email}?`)) return;
+    try {
+      await api.admin.subscriptions.remove(sub.id);
+      setSubs((prev) => prev.filter((s) => s.id !== sub.id));
+      toast({ title: 'Borttagen', description: `${sub.email} är avprenumererad.` });
+    } catch {
+      toast({ variant: 'destructive', title: 'Fel', description: 'Kunde inte ta bort prenumeranten.' });
+    }
+  }
+
+  async function handleResend(sub: Subscription) {
+    try {
+      await api.admin.subscriptions.resend(sub.id);
+      toast({ title: 'Skickat', description: `Mail skickat till ${sub.email}.` });
+    } catch {
+      toast({ variant: 'destructive', title: 'Fel', description: 'Kunde inte skicka mail.' });
+    }
+  }
+
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <form onSubmit={handleAdd} className="flex gap-2">
+        <Input
+          type="email"
+          placeholder="ny@epost.se"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="flex-1"
+        />
+        <Button type="submit" disabled={adding} className="bg-[#CC0000] hover:bg-[#AA0000] gap-1 shrink-0">
+          {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+          Lägg till
+        </Button>
+      </form>
+
+      {subs.length === 0 ? (
+        <p className="text-center text-muted-foreground py-8">Inga prenumeranter.</p>
+      ) : (
+        <div className="space-y-2">
+          {subs.map((sub) => (
+            <div key={sub.id} className="border rounded-lg px-4 py-3 flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="font-medium truncate">{sub.email}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <Badge variant={sub.status === 'confirmed' ? 'default' : 'secondary'}>
+                    {sub.status === 'confirmed' ? 'Bekräftad' : 'Väntar på bekräftelse'}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(sub.created_at).toLocaleDateString('sv-SE')}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleResend(sub)}
+                  title={sub.status === 'pending' ? 'Skicka om bekräftelsemail' : 'Skicka om välkomstmail'}
+                  className="gap-1"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                </Button>
+                <Button size="sm" variant="destructive" onClick={() => handleRemove(sub)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [cups, setCups] = useState<Cup[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -682,6 +791,7 @@ export function AdminPanel({ onLogout }: { onLogout: () => void }) {
           </TabsTrigger>
           <TabsTrigger value="all">Alla cuper</TabsTrigger>
           <TabsTrigger value="email">E-postinkorg</TabsTrigger>
+          <TabsTrigger value="subscribers">Prenumeranter</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pending" className="mt-4">
@@ -692,6 +802,9 @@ export function AdminPanel({ onLogout }: { onLogout: () => void }) {
         </TabsContent>
         <TabsContent value="email" className="mt-4">
           <EmailJobsTab />
+        </TabsContent>
+        <TabsContent value="subscribers" className="mt-4">
+          <SubscribersTab />
         </TabsContent>
       </Tabs>
     </div>

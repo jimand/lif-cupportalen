@@ -243,6 +243,101 @@ export async function sendSubscriberNotification(
   await gmail.users.messages.send({ userId: from, requestBody: { raw: encoded } });
 }
 
+export async function sendConfirmationEmail(email: string, token: string): Promise<void> {
+  if (!process.env.GMAIL_REFRESH_TOKEN) return;
+
+  const from = process.env.GMAIL_USER || 'me';
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const confirmUrl = `${frontendUrl}/api/subscriptions/confirm?token=${token}`;
+
+  const subjectText = `Bekräfta din prenumeration – Landvetter IF Cupportalen`;
+  const subjectEncoded = `=?UTF-8?B?${Buffer.from(subjectText, 'utf-8').toString('base64')}?=`;
+
+  const bodyText = [
+    `Klicka på länken nedan för att bekräfta din prenumeration på Landvetter IF Cupportalen:`,
+    '',
+    confirmUrl,
+    '',
+    `Länken är giltig tills du använder den. Om du inte begärde denna prenumeration kan du ignorera mailet.`,
+  ].join('\r\n');
+  const bodyEncoded = Buffer.from(bodyText, 'utf-8').toString('base64');
+
+  const message = [
+    `From: ${from}`,
+    `To: ${email}`,
+    `MIME-Version: 1.0`,
+    `Content-Type: text/plain; charset=utf-8`,
+    `Content-Transfer-Encoding: base64`,
+    `Subject: ${subjectEncoded}`,
+    '',
+    bodyEncoded,
+  ].join('\r\n');
+
+  const encoded = Buffer.from(message).toString('base64url');
+  await gmail.users.messages.send({ userId: from, requestBody: { raw: encoded } });
+}
+
+export async function sendWelcomeEmail(email: string, unsubToken: string): Promise<void> {
+  if (!process.env.GMAIL_REFRESH_TOKEN) return;
+
+  const from = process.env.GMAIL_USER || 'me';
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const unsubUrl = `${frontendUrl}/api/subscriptions/unsubscribe?token=${unsubToken}`;
+
+  const subjectText = `Välkommen som prenumerant – Landvetter IF Cupportalen`;
+  const subjectEncoded = `=?UTF-8?B?${Buffer.from(subjectText, 'utf-8').toString('base64')}?=`;
+
+  const bodyText = [
+    `Du är nu prenumerant på Landvetter IF Cupportalen och får mail när nya cuper godkänns.`,
+    '',
+    `Avprenumerera när som helst: ${unsubUrl}`,
+  ].join('\r\n');
+  const bodyEncoded = Buffer.from(bodyText, 'utf-8').toString('base64');
+
+  const message = [
+    `From: ${from}`,
+    `To: ${email}`,
+    `MIME-Version: 1.0`,
+    `Content-Type: text/plain; charset=utf-8`,
+    `Content-Transfer-Encoding: base64`,
+    `Subject: ${subjectEncoded}`,
+    '',
+    bodyEncoded,
+  ].join('\r\n');
+
+  const encoded = Buffer.from(message).toString('base64url');
+  await gmail.users.messages.send({ userId: from, requestBody: { raw: encoded } });
+}
+
+export async function sendUnsubscribeConfirmationEmail(email: string): Promise<void> {
+  if (!process.env.GMAIL_REFRESH_TOKEN) return;
+
+  const from = process.env.GMAIL_USER || 'me';
+
+  const subjectText = `Du är avprenumererad – Landvetter IF Cupportalen`;
+  const subjectEncoded = `=?UTF-8?B?${Buffer.from(subjectText, 'utf-8').toString('base64')}?=`;
+
+  const bodyText = [
+    `Din e-postadress har tagits bort från Landvetter IF Cupportalen.`,
+    `Du får inga fler notiser om nya cuper.`,
+  ].join('\r\n');
+  const bodyEncoded = Buffer.from(bodyText, 'utf-8').toString('base64');
+
+  const message = [
+    `From: ${from}`,
+    `To: ${email}`,
+    `MIME-Version: 1.0`,
+    `Content-Type: text/plain; charset=utf-8`,
+    `Content-Transfer-Encoding: base64`,
+    `Subject: ${subjectEncoded}`,
+    '',
+    bodyEncoded,
+  ].join('\r\n');
+
+  const encoded = Buffer.from(message).toString('base64url');
+  await gmail.users.messages.send({ userId: from, requestBody: { raw: encoded } });
+}
+
 export function startGmailPoller(): void {
   // Poll every 5 minutes
   cron.schedule('*/5 * * * *', () => {

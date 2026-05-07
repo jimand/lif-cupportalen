@@ -72,6 +72,7 @@ db.exec(`
 for (const col of [
   `ALTER TABLE cups ADD COLUMN cup_type TEXT`,
   `ALTER TABLE cups ADD COLUMN notes TEXT`,
+  `ALTER TABLE subscriptions ADD COLUMN status TEXT DEFAULT 'confirmed'`,
 ]) {
   try { db.exec(col); } catch {}
 }

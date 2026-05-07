@@ -45,9 +45,59 @@ router.post('/subscriptions', subscribeLimiter, (req: Request, res: Response) =>
   res.json({ ok: true, pending: true });
 });
 
-// GET /api/subscriptions/confirm?token=xxx
+const confirmPage = (token: string, frontendUrl: string) => `
+  <html><head><meta charset="utf-8"><title>Bekräfta prenumeration</title></head>
+  <body style="font-family:sans-serif;padding:2rem;max-width:500px;margin:0 auto;text-align:center">
+    <h2>Bekräfta din prenumeration</h2>
+    <p>Klicka på knappen nedan för att bekräfta att du vill prenumerera på Landvetter IF Cupportalen.</p>
+    <form method="POST" action="${frontendUrl}/api/subscriptions/confirm">
+      <input type="hidden" name="token" value="${token}">
+      <button type="submit" style="background:#16a34a;color:#fff;border:none;padding:0.75rem 2rem;font-size:1rem;border-radius:6px;cursor:pointer">
+        Bekräfta prenumeration
+      </button>
+    </form>
+  </body></html>
+`;
+
+// GET /api/subscriptions/confirm?token=xxx – visar bekräftelsesida (skyddas mot länkskanning)
 router.get('/subscriptions/confirm', confirmLimiter, (req: Request, res: Response) => {
   const token = String(req.query.token || '');
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+  if (!token) { res.status(400).send('<p>Ogiltig länk</p>'); return; }
+
+  const sub = db.prepare(
+    `SELECT id, token_expires_at FROM subscriptions WHERE token = ? AND status = 'pending'`
+  ).get(token) as any;
+
+  if (!sub) {
+    res.status(400).send(`
+      <html><body style="font-family:sans-serif;padding:2rem;max-width:500px;margin:0 auto">
+        <h2>Ogiltig länk</h2>
+        <p>Länken är ogiltig eller redan använd. Din prenumeration är antingen redan bekräftad eller så finns den inte.</p>
+      </body></html>
+    `);
+    return;
+  }
+
+  if (sub.token_expires_at && new Date(sub.token_expires_at) < new Date()) {
+    res.status(400).send(`
+      <html><body style="font-family:sans-serif;padding:2rem;max-width:500px;margin:0 auto">
+        <h2>Länken har gått ut</h2>
+        <p>Bekräftelselänken är äldre än 48 timmar. Prenumerera igen på <a href="${frontendUrl}">startsidan</a> för att få en ny länk.</p>
+      </body></html>
+    `);
+    return;
+  }
+
+  res.send(confirmPage(token, frontendUrl));
+});
+
+// POST /api/subscriptions/confirm – utför den faktiska bekräftelsen
+router.post('/subscriptions/confirm', confirmLimiter, (req: Request, res: Response) => {
+  const token = String(req.body?.token || req.query.token || '');
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
   if (!token) { res.status(400).send('<p>Ogiltig länk</p>'); return; }
 
   const sub = db.prepare(
@@ -68,7 +118,7 @@ router.get('/subscriptions/confirm', confirmLimiter, (req: Request, res: Respons
     res.status(400).send(`
       <html><body style="font-family:sans-serif;padding:2rem;max-width:500px;margin:0 auto">
         <h2>Länken har gått ut</h2>
-        <p>Bekräftelselänken är äldre än 48 timmar. Prenumerera igen på <a href="/">startsidan</a> för att få en ny länk.</p>
+        <p>Bekräftelselänken är äldre än 48 timmar. Prenumerera igen på <a href="${frontendUrl}">startsidan</a> för att få en ny länk.</p>
       </body></html>
     `);
     return;
@@ -81,9 +131,10 @@ router.get('/subscriptions/confirm', confirmLimiter, (req: Request, res: Respons
   );
 
   res.send(`
-    <html><body style="font-family:sans-serif;padding:2rem;max-width:500px;margin:0 auto">
+    <html><body style="font-family:sans-serif;padding:2rem;max-width:500px;margin:0 auto;text-align:center">
       <h2>Prenumeration bekräftad!</h2>
       <p>Du är nu prenumerant på Landvetter IF Cupportalen och får mail när nya cuper godkänns.</p>
+      <p><a href="${frontendUrl}">Gå till startsidan</a></p>
     </body></html>
   `);
 });

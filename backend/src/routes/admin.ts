@@ -22,6 +22,8 @@ const cupUpdateSchema = z.object({
   description: z.string().max(2000).optional(),
   notes: z.string().max(2000).optional(),
   status: z.enum(['pending', 'approved']).optional(),
+  recommended: z.boolean().optional(),
+  registration_deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')),
 });
 
 function normalizeUrl(url: string | undefined | null): string | null {
@@ -109,6 +111,8 @@ router.put('/cups/:id', (req: Request, res: Response) => {
       description = ?,
       notes = ?,
       status = COALESCE(?, status),
+      recommended = COALESCE(?, recommended),
+      registration_deadline = ?,
       updated_at = datetime('now')
     WHERE id = ?
   `).run(
@@ -122,6 +126,8 @@ router.put('/cups/:id', (req: Request, res: Response) => {
     'description' in data ? (data.description || null) : cup.description,
     'notes' in data ? (data.notes || null) : cup.notes,
     data.status ?? null,
+    'recommended' in data ? (data.recommended ? 1 : 0) : null,
+    'registration_deadline' in data ? (data.registration_deadline || null) : cup.registration_deadline,
     req.params.id,
   );
 

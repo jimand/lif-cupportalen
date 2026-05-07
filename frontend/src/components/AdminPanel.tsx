@@ -121,6 +121,8 @@ function CupForm({
     url: cup.url || '',
     description: cup.description || '',
     notes: cup.notes || '',
+    recommended: !!cup.recommended,
+    registration_deadline: cup.registration_deadline || '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -176,6 +178,20 @@ function CupForm({
         <div className="space-y-1 col-span-2">
           <Label>Interna anteckningar</Label>
           <Textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} rows={2} placeholder="Visas bara för admin..." />
+        </div>
+        <div className="space-y-1">
+          <Label>Sista anmälningsdatum</Label>
+          <Input type="date" value={form.registration_deadline} onChange={(e) => set('registration_deadline', e.target.value)} />
+        </div>
+        <div className="flex items-center gap-2 col-span-2 pt-1">
+          <input
+            type="checkbox"
+            id="recommended"
+            checked={form.recommended}
+            onChange={(e) => setForm((prev) => ({ ...prev, recommended: e.target.checked }))}
+            className="h-4 w-4"
+          />
+          <Label htmlFor="recommended">Rekommenderas av Landvetter IF</Label>
         </div>
       </div>
       <div className="flex justify-end gap-2">

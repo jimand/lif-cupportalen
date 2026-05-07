@@ -34,6 +34,8 @@ export interface Cup {
   source_email?: string;
   status: 'pending' | 'approved';
   thumbs_up: number;
+  recommended?: boolean;
+  registration_deadline?: string;
   potential_duplicate?: number;
   created_at: string;
   updated_at: string;

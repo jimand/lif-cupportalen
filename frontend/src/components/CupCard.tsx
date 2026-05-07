@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ThumbsUp, MapPin, Calendar, ExternalLink, Users, CalendarPlus } from 'lucide-react';
+import { ThumbsUp, MapPin, Calendar, ExternalLink, Users, CalendarPlus, Clock } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { api, type Cup } from '@/lib/api';
-import { formatDateRange } from '@/lib/utils';
+import { formatDateRange, formatDate } from '@/lib/utils';
 import { toast } from '@/components/ui/use-toast';
 
 interface CupCardProps {
@@ -39,6 +39,11 @@ export function CupCard({ cup, voted, onVoted }: CupCardProps) {
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-5">
+        {cup.recommended && (
+          <div className="-mx-5 -mt-5 mb-4 bg-green-600 text-white text-xs font-semibold px-4 py-1.5 rounded-t-lg flex items-center gap-1.5">
+            <span>⭐</span> Rekommenderas av Landvetter IF
+          </div>
+        )}
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <Link to={`/cups/${cup.id}`} className="hover:underline">
@@ -54,6 +59,14 @@ export function CupCard({ cup, voted, onVoted }: CupCardProps) {
                 <Calendar className="h-3.5 w-3.5 shrink-0" />
                 <span>{formatDateRange(cup.start_date, cup.end_date)}</span>
               </div>
+              {cup.registration_deadline && (
+                <div className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 shrink-0" />
+                  <span className={new Date(cup.registration_deadline) < new Date() ? 'text-destructive' : ''}>
+                    Sista anmälning: {formatDate(cup.registration_deadline)}
+                  </span>
+                </div>
+              )}
               {ageClasses.length > 0 && (
                 <div className="flex items-center gap-1.5">
                   <Users className="h-3.5 w-3.5 shrink-0" />

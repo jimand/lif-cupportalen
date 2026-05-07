@@ -139,9 +139,40 @@ router.post('/subscriptions/confirm', confirmLimiter, (req: Request, res: Respon
   `);
 });
 
-// GET /api/subscriptions/unsubscribe?token=xxx
+// GET /api/subscriptions/unsubscribe?token=xxx – visar bekräftelsesida
 router.get('/subscriptions/unsubscribe', confirmLimiter, (req: Request, res: Response) => {
   const token = String(req.query.token || '');
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  if (!token) { res.status(400).send('<p>Ogiltig länk</p>'); return; }
+
+  const sub = db.prepare(`SELECT email FROM subscriptions WHERE token = ?`).get(token) as any;
+  if (!sub) {
+    res.status(404).send(`
+      <html><body style="font-family:sans-serif;padding:2rem;max-width:500px;margin:0 auto">
+        <p>Länken är ogiltig eller redan använd.</p>
+      </body></html>
+    `);
+    return;
+  }
+
+  res.send(`
+    <html><head><meta charset="utf-8"><title>Avprenumerera</title></head>
+    <body style="font-family:sans-serif;padding:2rem;max-width:500px;margin:0 auto;text-align:center">
+      <h2>Avprenumerera</h2>
+      <p>Vill du sluta få notiser om nya cuper?</p>
+      <form method="POST" action="${frontendUrl}/api/subscriptions/unsubscribe">
+        <input type="hidden" name="token" value="${token}">
+        <button type="submit" style="background:#CC0000;color:#fff;border:none;padding:0.75rem 2rem;font-size:1rem;border-radius:6px;cursor:pointer">
+          Ja, avprenumerera
+        </button>
+      </form>
+    </body></html>
+  `);
+});
+
+// POST /api/subscriptions/unsubscribe – utför den faktiska avprenumerationen
+router.post('/subscriptions/unsubscribe', confirmLimiter, (req: Request, res: Response) => {
+  const token = String(req.body?.token || req.query.token || '');
   if (!token) { res.status(400).send('<p>Ogiltig länk</p>'); return; }
 
   const sub = db.prepare(`SELECT email FROM subscriptions WHERE token = ?`).get(token) as any;
@@ -163,7 +194,7 @@ router.get('/subscriptions/unsubscribe', confirmLimiter, (req: Request, res: Res
   }
 
   res.send(`
-    <html><body style="font-family:sans-serif;padding:2rem;max-width:500px;margin:0 auto">
+    <html><body style="font-family:sans-serif;padding:2rem;max-width:500px;margin:0 auto;text-align:center">
       <h2>Du är avprenumererad</h2>
       <p>Din e-postadress har tagits bort. Du får inga fler notiser om nya cuper.</p>
     </body></html>

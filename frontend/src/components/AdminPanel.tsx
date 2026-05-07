@@ -6,14 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api, type Cup, type EmailJob, type Attachment, type Stats } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
 import { Check, Pencil, Trash2, Mail, Loader2, RefreshCw, Paperclip, Download } from 'lucide-react';
 import { formatDateRange, normalizeUrl } from '@/lib/utils';
 import { AgeSelect } from '@/components/AgeSelect';
-
-const CUP_TYPES = ['5v5', '7v7', '9v9', '11v11', 'Futsal', 'Hall', 'Annat'];
+import { CupTypeSelect } from '@/components/CupTypeSelect';
 
 function AttachmentManager({ cupId }: { cupId: number }) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -163,15 +161,9 @@ function CupForm({
           <Label>Slutdatum</Label>
           <Input type="date" value={form.end_date} onChange={(e) => set('end_date', e.target.value)} />
         </div>
-        <div className="space-y-1 col-span-2">
+        <div className="space-y-2 col-span-2">
           <Label>Spelformat</Label>
-          <Select value={form.cup_type || 'none'} onValueChange={(v) => set('cup_type', v === 'none' ? '' : v)}>
-            <SelectTrigger><SelectValue placeholder="Ej angett" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Ej angett</SelectItem>
-              {CUP_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <CupTypeSelect value={form.cup_type} onChange={(v) => set('cup_type', v)} />
         </div>
         <div className="space-y-1 col-span-2">
           <Label>Länk</Label>
@@ -304,15 +296,9 @@ function PendingReviewDialog({
               <Input type="date" value={form.end_date} onChange={(e) => set('end_date', e.target.value)} />
             </div>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-2">
             <Label>Spelformat</Label>
-            <Select value={form.cup_type || 'none'} onValueChange={(v) => set('cup_type', v === 'none' ? '' : v)}>
-              <SelectTrigger><SelectValue placeholder="Ej angett" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Ej angett</SelectItem>
-                {CUP_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <CupTypeSelect value={form.cup_type} onChange={(v) => set('cup_type', v)} />
           </div>
           <div className="space-y-1">
             <Label>Länk</Label>

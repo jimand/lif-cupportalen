@@ -92,7 +92,11 @@ export default function CupDetail() {
               <div>
                 <h2 className="text-2xl font-bold">{cup.name}</h2>
                 {cup.cup_type && (
-                  <Badge variant="secondary" className="mt-1">{cup.cup_type}</Badge>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {cup.cup_type.split(',').map((t) => (
+                      <Badge key={t} variant="secondary">{t.trim()}</Badge>
+                    ))}
+                  </div>
                 )}
               </div>
               <button

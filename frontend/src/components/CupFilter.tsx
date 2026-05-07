@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { CupFilters } from '@/lib/api';
+import { CUP_TYPES, parseCupTypes, serializeCupTypes } from '@/components/CupTypeSelect';
 
 interface CupFilterProps {
   filters: CupFilters;
@@ -10,7 +11,6 @@ interface CupFilterProps {
 }
 
 const AGES = Array.from({ length: 12 }, (_, i) => i + 7);
-const CUP_TYPES = ['5v5', '7v7', '9v9', '11v11', 'Futsal', 'Hall', 'Annat'];
 
 export function CupFilter({ filters, onChange }: CupFilterProps) {
   const hasActiveFilters = !!(
@@ -18,7 +18,7 @@ export function CupFilter({ filters, onChange }: CupFilterProps) {
   );
 
   function clear() {
-    onChange({ sort: filters.sort, hide_past: filters.hide_past });
+    onChange({ sort: filters.sort, hide_past: filters.hide_past, cup_type: undefined });
   }
 
   return (
@@ -49,20 +49,29 @@ export function CupFilter({ filters, onChange }: CupFilterProps) {
           </SelectContent>
         </Select>
 
-        <Select
-          value={filters.cup_type || 'all'}
-          onValueChange={(v) => onChange({ ...filters, cup_type: v === 'all' ? undefined : v })}
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Format" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Alla format</SelectItem>
-            {CUP_TYPES.map((t) => (
-              <SelectItem key={t} value={t}>{t}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {CUP_TYPES.map((t) => {
+          const selected = parseCupTypes(filters.cup_type || '');
+          const active = selected.has(t);
+          return (
+            <button
+              key={t}
+              type="button"
+              onClick={() => {
+                const next = new Set(selected);
+                if (active) next.delete(t); else next.add(t);
+                const v = serializeCupTypes(next);
+                onChange({ ...filters, cup_type: v || undefined });
+              }}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                active
+                  ? 'bg-[#CC0000] text-white border-[#CC0000]'
+                  : 'bg-white text-foreground border-input hover:border-[#CC0000]'
+              }`}
+            >
+              {t}
+            </button>
+          );
+        })}
 
         <Input
           type="date"

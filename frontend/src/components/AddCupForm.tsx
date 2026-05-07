@@ -4,14 +4,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
 import { AgeSelect } from '@/components/AgeSelect';
+import { CupTypeSelect } from '@/components/CupTypeSelect';
 import { normalizeUrl } from '@/lib/utils';
 import { Plus } from 'lucide-react';
-
-const CUP_TYPES = ['5v5', '7v7', '9v9', '11v11', 'Futsal', 'Hall', 'Annat'];
 
 interface FormData {
   name: string;
@@ -118,17 +116,9 @@ export function AddCupForm() {
             {errors.age_classes && <p className="text-xs text-destructive">{errors.age_classes}</p>}
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-2">
             <Label>Spelformat</Label>
-            <Select value={form.cup_type || 'none'} onValueChange={(v) => set('cup_type', v === 'none' ? '' : v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Välj format (valfritt)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Ej angett</SelectItem>
-                {CUP_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <CupTypeSelect value={form.cup_type} onChange={(v) => set('cup_type', v)} />
           </div>
 
           <div className="space-y-1">

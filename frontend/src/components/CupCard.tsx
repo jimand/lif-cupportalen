@@ -81,9 +81,9 @@ export function CupCard({ cup, voted, onVoted }: CupCardProps) {
                         {cls}
                       </Badge>
                     ))}
-                    {cup.cup_type && (
-                      <Badge variant="outline" className="text-xs py-0">{cup.cup_type}</Badge>
-                    )}
+                    {cup.cup_type && cup.cup_type.split(',').map((t) => (
+                      <Badge key={t} variant="outline" className="text-xs py-0">{t.trim()}</Badge>
+                    ))}
                   </div>
                 </div>
               )}

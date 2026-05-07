@@ -78,8 +78,11 @@ router.get('/', (req: Request, res: Response) => {
   }
 
   if (cup_type) {
-    query += ` AND cup_type = ?`;
-    params.push(cup_type);
+    const types = String(cup_type).split(',').map((t) => t.trim()).filter(Boolean);
+    if (types.length > 0) {
+      query += ` AND (${types.map(() => `cup_type LIKE ?`).join(' OR ')})`;
+      params.push(...types.map((t) => `%${t}%`));
+    }
   }
 
   const sortOrder = sort === 'date' ? 'start_date ASC' : 'thumbs_up DESC, start_date ASC';

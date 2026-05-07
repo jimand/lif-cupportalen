@@ -1,4 +1,4 @@
-export const CUP_TYPES = ['5v5', '7v7', '9v9', '11v11', 'Futsal', 'Hall', 'Annat'];
+export const CUP_TYPES = ['3-mot-3', '5-mot-5', '7-mot-7', '9-mot-9', '11-mot-11', 'Futsal'];
 
 interface CupTypeSelectProps {
   value: string; // kommaseparerade typer, t.ex. "5v5,7v7"

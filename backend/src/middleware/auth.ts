@@ -14,7 +14,7 @@ export function requireAdmin(req: AdminRequest, res: Response, next: NextFunctio
   }
 
   try {
-    jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
+    jwt.verify(token, process.env.JWT_SECRET!);
     req.isAdmin = true;
     next();
   } catch {

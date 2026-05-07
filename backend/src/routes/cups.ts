@@ -1,10 +1,19 @@
 import { Router, Request, Response } from 'express';
 import crypto from 'crypto';
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 import db from '../services/db';
 import { sendCupNotification } from '../services/gmail';
 
 const router = Router();
+
+const submitLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'För många inskickade cuper, försök igen om en timme' },
+});
 
 const cupSchema = z.object({
   name: z.string().min(1, 'Namn krävs').max(200),
@@ -81,7 +90,7 @@ router.get('/:id', (req: Request, res: Response) => {
 });
 
 // POST /api/cups – create pending cup
-router.post('/', (req: Request, res: Response) => {
+router.post('/', submitLimiter, (req: Request, res: Response) => {
   const parsed = cupSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Ogiltiga uppgifter', details: parsed.error.flatten().fieldErrors });

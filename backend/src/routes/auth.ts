@@ -2,14 +2,23 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 
 const router = Router();
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'För många inloggningsförsök, försök igen om 15 minuter' },
+});
 
 const loginSchema = z.object({
   password: z.string().min(1, 'Lösenord krävs'),
 });
 
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', loginLimiter, async (req: Request, res: Response) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Ogiltiga uppgifter' });
@@ -37,7 +46,7 @@ router.post('/login', async (req: Request, res: Response) => {
     return;
   }
 
-  const token = jwt.sign({ admin: true }, process.env.JWT_SECRET || 'fallback-secret', {
+  const token = jwt.sign({ admin: true }, process.env.JWT_SECRET!, {
     expiresIn: '8h',
   });
 
@@ -63,7 +72,7 @@ router.get('/me', (req: Request, res: Response) => {
     return;
   }
   try {
-    jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
+    jwt.verify(token, process.env.JWT_SECRET!);
     res.json({ admin: true });
   } catch {
     res.json({ admin: false });

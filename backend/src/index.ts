@@ -2,22 +2,27 @@ import 'dotenv/config';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import helmet from 'helmet';
 
 import cupsRouter from './routes/cups';
 import authRouter from './routes/auth';
 import adminRouter from './routes/admin';
 import { startGmailPoller } from './services/gmail';
 
+if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET saknas i miljövariabler');
+if (!process.env.ADMIN_PASSWORD) throw new Error('ADMIN_PASSWORD saknas i miljövariabler');
+
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
 
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 
+app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
 
 app.use('/api/cups', cupsRouter);

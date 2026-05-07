@@ -10,7 +10,7 @@ import { toast } from '@/components/ui/use-toast';
 interface CupCardProps {
   cup: Cup;
   voted: boolean;
-  onVoted: (cupId: number, newCount: number) => void;
+  onVoted: (cupId: number, newCount: number, voted: boolean) => void;
 }
 
 export function CupCard({ cup, voted, onVoted }: CupCardProps) {
@@ -24,19 +24,13 @@ export function CupCard({ cup, voted, onVoted }: CupCardProps) {
     .map((n) => `${n} år`);
 
   async function handleVote() {
-    if (voted || voting) return;
+    if (voting) return;
     setVoting(true);
-    onVoted(cup.id, cup.thumbs_up + 1);
     try {
       const result = await api.cups.vote(cup.id);
-      onVoted(cup.id, result.thumbs_up);
+      onVoted(cup.id, result.thumbs_up, result.voted);
     } catch (err: any) {
-      onVoted(cup.id, cup.thumbs_up);
-      if (err.message?.includes('redan röstat')) {
-        toast({ title: 'Redan röstat', description: 'Du har redan röstat på denna cup.' });
-      } else {
-        toast({ variant: 'destructive', title: 'Fel', description: 'Kunde inte spara röst.' });
-      }
+      toast({ variant: 'destructive', title: 'Fel', description: 'Kunde inte spara röst.' });
     } finally {
       setVoting(false);
     }
@@ -85,13 +79,13 @@ export function CupCard({ cup, voted, onVoted }: CupCardProps) {
           <div className="flex flex-col items-end gap-2 shrink-0">
             <button
               onClick={handleVote}
-              disabled={voted || voting}
+              disabled={voting}
               className={`flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors ${
                 voted
-                  ? 'text-[#CC0000] bg-red-50 cursor-default'
+                  ? 'text-[#CC0000] bg-red-50 hover:bg-red-100'
                   : 'text-muted-foreground hover:text-[#CC0000] hover:bg-red-50'
               }`}
-              title={voted ? 'Du har röstat' : 'Tumme upp'}
+              title={voted ? 'Klicka för att ångra din röst' : 'Tumme upp'}
             >
               <ThumbsUp className={`h-5 w-5 ${voted ? 'fill-current' : ''}`} />
               <span className="text-xs font-medium">{cup.thumbs_up}</span>

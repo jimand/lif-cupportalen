@@ -184,7 +184,10 @@ router.post('/:id/vote', (req: Request, res: Response) => {
 
   const existing = db.prepare(`SELECT id FROM votes WHERE cup_id = ? AND voter_token = ?`).get(cup.id, voterToken);
   if (existing) {
-    res.status(409).json({ error: 'Du har redan röstat på denna cup', already_voted: true });
+    db.prepare(`DELETE FROM votes WHERE cup_id = ? AND voter_token = ?`).run(cup.id, voterToken);
+    db.prepare(`UPDATE cups SET thumbs_up = MAX(0, thumbs_up - 1), updated_at = datetime('now') WHERE id = ?`).run(cup.id);
+    const updated = db.prepare(`SELECT thumbs_up FROM cups WHERE id = ?`).get(cup.id) as any;
+    res.json({ thumbs_up: updated.thumbs_up, voted: false });
     return;
   }
 
@@ -192,7 +195,7 @@ router.post('/:id/vote', (req: Request, res: Response) => {
   db.prepare(`UPDATE cups SET thumbs_up = thumbs_up + 1, updated_at = datetime('now') WHERE id = ?`).run(cup.id);
 
   const updated = db.prepare(`SELECT thumbs_up FROM cups WHERE id = ?`).get(cup.id) as any;
-  res.json({ thumbs_up: updated.thumbs_up });
+  res.json({ thumbs_up: updated.thumbs_up, voted: true });
 });
 
 // GET /api/cups/vote-status – check if voted (query: ids)

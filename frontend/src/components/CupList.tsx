@@ -34,9 +34,9 @@ export function CupList() {
     loadCups();
   }, [loadCups]);
 
-  function handleVoted(cupId: number, newCount: number) {
+  function handleVoted(cupId: number, newCount: number, voted: boolean) {
     setCups((prev) => prev.map((c) => (c.id === cupId ? { ...c, thumbs_up: newCount } : c)));
-    setVotedMap((prev) => ({ ...prev, [cupId]: true }));
+    setVotedMap((prev) => ({ ...prev, [cupId]: voted }));
   }
 
   return (

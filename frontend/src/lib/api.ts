@@ -111,7 +111,7 @@ export const api = {
       }),
 
     vote: (id: number) =>
-      request<{ thumbs_up: number }>(`/cups/${id}/vote`, { method: 'POST' }),
+      request<{ thumbs_up: number; voted: boolean }>(`/cups/${id}/vote`, { method: 'POST' }),
 
     voteStatus: (ids: number[]) =>
       request<Record<number, boolean>>(`/cups/vote-status/check?ids=${ids.join(',')}`),

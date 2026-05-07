@@ -38,21 +38,14 @@ export default function CupDetail() {
   }, [id]);
 
   async function handleVote() {
-    if (!cup || voted || voting) return;
+    if (!cup || voting) return;
     setVoting(true);
-    setCup((c) => c ? { ...c, thumbs_up: c.thumbs_up + 1 } : c);
-    setVoted(true);
     try {
       const result = await api.cups.vote(cup.id);
       setCup((c) => c ? { ...c, thumbs_up: result.thumbs_up } : c);
+      setVoted(result.voted);
     } catch (err: any) {
-      setCup((c) => c ? { ...c, thumbs_up: c.thumbs_up - 1 } : c);
-      setVoted(false);
-      if (err.message?.includes('redan röstat')) {
-        toast({ title: 'Redan röstat', description: 'Du har redan röstat på denna cup.' });
-      } else {
-        toast({ variant: 'destructive', title: 'Fel', description: 'Kunde inte spara röst.' });
-      }
+      toast({ variant: 'destructive', title: 'Fel', description: 'Kunde inte spara röst.' });
     } finally {
       setVoting(false);
     }
@@ -101,13 +94,13 @@ export default function CupDetail() {
               </div>
               <button
                 onClick={handleVote}
-                disabled={voted || voting}
+                disabled={voting}
                 className={`flex flex-col items-center gap-0.5 p-3 rounded-xl transition-colors shrink-0 ${
                   voted
-                    ? 'text-[#CC0000] bg-red-50 cursor-default'
+                    ? 'text-[#CC0000] bg-red-50 hover:bg-red-100'
                     : 'text-muted-foreground hover:text-[#CC0000] hover:bg-red-50'
                 }`}
-                title={voted ? 'Du har röstat' : 'Tumme upp'}
+                title={voted ? 'Klicka för att ångra din röst' : 'Tumme upp'}
               >
                 <ThumbsUp className={`h-6 w-6 ${voted ? 'fill-current' : ''}`} />
                 <span className="text-sm font-semibold">{cup.thumbs_up}</span>

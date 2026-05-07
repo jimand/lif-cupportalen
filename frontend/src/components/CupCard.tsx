@@ -1,10 +1,16 @@
-import { useState } from 'react';
-import { ThumbsUp, MapPin, Calendar, ExternalLink, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ThumbsUp, MapPin, Calendar, ExternalLink, Users, Paperclip } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { api, type Cup } from '@/lib/api';
+import { api, type Cup, type Attachment } from '@/lib/api';
 import { formatDateRange } from '@/lib/utils';
 import { toast } from '@/components/ui/use-toast';
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 interface CupCardProps {
   cup: Cup;
@@ -14,6 +20,11 @@ interface CupCardProps {
 
 export function CupCard({ cup, voted, onVoted }: CupCardProps) {
   const [voting, setVoting] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+
+  useEffect(() => {
+    api.attachments.listForCup(cup.id).then(setAttachments).catch(() => {});
+  }, [cup.id]);
 
   const ageClasses = cup.age_classes
     .split(',')
@@ -94,17 +105,32 @@ export function CupCard({ cup, voted, onVoted }: CupCardProps) {
           </div>
         </div>
 
-        {cup.url && (
-          <div className="mt-3 pt-3 border-t">
-            <a
-              href={cup.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm text-[#CC0000] hover:text-[#AA0000] font-medium"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              Mer information
-            </a>
+        {(cup.url || attachments.length > 0) && (
+          <div className="mt-3 pt-3 border-t space-y-1.5">
+            {cup.url && (
+              <a
+                href={cup.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm text-[#CC0000] hover:text-[#AA0000] font-medium"
+              >
+                <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                Mer information
+              </a>
+            )}
+            {attachments.map((att) => (
+              <a
+                key={att.id}
+                href={`/api/attachments/${att.id}/file`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm text-[#CC0000] hover:text-[#AA0000] font-medium"
+              >
+                <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{att.original_name}</span>
+                <span className="text-xs text-muted-foreground font-normal shrink-0">({formatSize(att.size)})</span>
+              </a>
+            ))}
           </div>
         )}
       </CardContent>

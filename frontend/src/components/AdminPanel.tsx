@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,11 +6,100 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { api, type Cup, type EmailJob } from '@/lib/api';
+import { api, type Cup, type EmailJob, type Attachment } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
-import { Check, Pencil, Trash2, Mail, Loader2, RefreshCw } from 'lucide-react';
+import { Check, Pencil, Trash2, Mail, Loader2, RefreshCw, Paperclip } from 'lucide-react';
 import { formatDateRange, normalizeUrl } from '@/lib/utils';
 import { AgeSelect } from '@/components/AgeSelect';
+
+function AttachmentManager({ cupId }: { cupId: number }) {
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function loadAttachments() {
+    try { setAttachments(await api.attachments.listForCup(cupId)); } catch {}
+  }
+
+  useEffect(() => { loadAttachments(); }, [cupId]);
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const att = await api.attachments.upload(cupId, file);
+      setAttachments((prev) => [...prev, att]);
+      toast({ title: 'Uppladdad', description: file.name });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Fel', description: err.message });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
+  async function handleDelete(id: number) {
+    try {
+      await api.attachments.delete(id);
+      setAttachments((prev) => prev.filter((a) => a.id !== id));
+    } catch {
+      toast({ variant: 'destructive', title: 'Fel', description: 'Kunde inte radera bilagan.' });
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label>Bilagor</Label>
+      {attachments.length > 0 && (
+        <div className="space-y-1">
+          {attachments.map((att) => (
+            <div key={att.id} className="flex items-center justify-between gap-2 text-sm bg-muted rounded px-2 py-1.5">
+              <a
+                href={`/api/attachments/${att.id}/file`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 truncate text-[#CC0000] hover:text-[#AA0000]"
+              >
+                <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{att.original_name}</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => handleDelete(att.id)}
+                className="text-muted-foreground hover:text-destructive shrink-0"
+                title="Radera bilaga"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx"
+          onChange={handleUpload}
+          disabled={uploading}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          disabled={uploading}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
+          {uploading ? 'Laddar upp...' : 'Bifoga fil'}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 function CupForm({
   cup,
@@ -202,6 +291,7 @@ function PendingReviewDialog({
             <Label>Beskrivning</Label>
             <Textarea value={form.description} onChange={(e) => set('description', e.target.value)} rows={4} />
           </div>
+          <AttachmentManager cupId={cup.id} />
         </div>
 
         <div className="flex justify-between gap-2 pt-2">
@@ -327,16 +417,21 @@ function AllCupsTab({ cups, onRefresh }: { cups: Cup[]; onRefresh: () => void })
       </div>
 
       <Dialog open={!!editCup} onOpenChange={(o) => !o && setEditCup(null)}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Redigera cup</DialogTitle>
           </DialogHeader>
           {editCup && (
-            <CupForm
-              cup={editCup}
-              onSave={(data) => handleSave(editCup.id, data)}
-              onCancel={() => setEditCup(null)}
-            />
+            <>
+              <CupForm
+                cup={editCup}
+                onSave={(data) => handleSave(editCup.id, data)}
+                onCancel={() => setEditCup(null)}
+              />
+              <div className="pt-2 border-t">
+                <AttachmentManager cupId={editCup.id} />
+              </div>
+            </>
           )}
         </DialogContent>
       </Dialog>

@@ -148,6 +148,8 @@ router.post('/email-jobs/:id/create-cup', (req: Request, res: Response) => {
     console.error(`[${new Date().toISOString()}] Notifieringsmail misslyckades:`, err)
   );
 
+  db.prepare(`UPDATE attachments SET cup_id = ? WHERE email_job_id = ? AND cup_id IS NULL`).run(cupId, job.id);
+
   db.prepare(`
     UPDATE email_jobs SET parsed_cup_id = ?, status = 'processed', processed_at = datetime('now') WHERE id = ?
   `).run(cupId, job.id);

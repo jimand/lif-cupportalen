@@ -44,6 +44,14 @@ export interface EmailJob {
   processed_at?: string;
 }
 
+export interface Attachment {
+  id: number;
+  original_name: string;
+  mime_type: string;
+  size: number;
+  created_at: string;
+}
+
 export interface CupFilters {
   search?: string;
   location?: string;
@@ -92,6 +100,29 @@ export const api = {
     logout: () => request<{ ok: boolean }>('/auth/logout', { method: 'POST' }),
 
     me: () => request<{ admin: boolean }>('/auth/me'),
+  },
+
+  attachments: {
+    listForCup: (cupId: number) =>
+      request<Attachment[]>(`/cups/${cupId}/attachments`),
+
+    upload: async (cupId: number, file: File): Promise<Attachment> => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`${BASE}/admin/cups/${cupId}/attachments`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: 'Okänt fel' }));
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
+      return res.json();
+    },
+
+    delete: (id: number) =>
+      request<{ ok: boolean }>(`/admin/attachments/${id}`, { method: 'DELETE' }),
   },
 
   admin: {

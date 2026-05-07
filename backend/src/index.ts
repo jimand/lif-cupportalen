@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import cupsRouter from './routes/cups';
 import authRouter from './routes/auth';
 import adminRouter from './routes/admin';
+import attachmentsRouter from './routes/attachments';
 import { startGmailPoller } from './services/gmail';
 
 if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET saknas i miljövariabler');
@@ -28,6 +29,7 @@ app.use(cookieParser());
 app.use('/api/cups', cupsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api', attachmentsRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, timestamp: new Date().toISOString() });

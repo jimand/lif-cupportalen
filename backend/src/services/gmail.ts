@@ -2,6 +2,7 @@ import { google } from 'googleapis';
 import cron from 'node-cron';
 import db from './db';
 import { parseEmailToCup } from './emailParser';
+import { saveFile } from './storage';
 
 const oauth2Client = new google.auth.OAuth2(
   process.env.GMAIL_CLIENT_ID,
@@ -17,6 +18,44 @@ const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
 function decodeBase64(data: string): string {
   return Buffer.from(data.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8');
+}
+
+const ALLOWED_ATTACHMENT_TYPES = new Set([
+  'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
+
+function collectAttachmentParts(payload: any, acc: any[] = []): any[] {
+  if (!payload) return acc;
+  if (payload.filename && payload.body?.attachmentId) acc.push(payload);
+  for (const part of payload.parts || []) collectAttachmentParts(part, acc);
+  return acc;
+}
+
+async function saveEmailAttachments(messageId: string, jobId: number, cupId: number | null, payload: any): Promise<void> {
+  for (const part of collectAttachmentParts(payload)) {
+    if (!ALLOWED_ATTACHMENT_TYPES.has(part.mimeType)) continue;
+    try {
+      const attRes = await gmail.users.messages.attachments.get({
+        userId: process.env.GMAIL_USER || 'me',
+        messageId,
+        id: part.body.attachmentId,
+      });
+      const data = attRes.data.data;
+      if (!data) continue;
+      const buffer = Buffer.from(data.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+      const { filename, size } = saveFile(buffer, part.filename);
+      db.prepare(`
+        INSERT INTO attachments (cup_id, email_job_id, filename, original_name, mime_type, size)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(cupId, jobId, filename, part.filename, part.mimeType, size);
+      console.log(`[${new Date().toISOString()}] Gmail: Sparade bilaga "${part.filename}" (${size} B)`);
+    } catch (err) {
+      console.error(`[${new Date().toISOString()}] Gmail: Kunde inte spara bilaga "${part.filename}":`, err);
+    }
+  }
 }
 
 function extractBody(payload: any): string {
@@ -111,6 +150,8 @@ export async function pollGmail(): Promise<void> {
         db.prepare(`
           UPDATE email_jobs SET status = ?, parsed_cup_id = ?, processed_at = datetime('now') WHERE id = ?
         `).run(parsedCupId ? 'processed' : 'failed', parsedCupId, jobId);
+
+        await saveEmailAttachments(msg.id, Number(jobId), parsedCupId, msgRes.data.payload);
 
         // Mark as read
         await gmail.users.messages.modify({

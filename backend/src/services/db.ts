@@ -49,6 +49,17 @@ db.exec(`
     received_at         TEXT,
     processed_at        TEXT
   );
+
+  CREATE TABLE IF NOT EXISTS attachments (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    cup_id        INTEGER REFERENCES cups(id) ON DELETE CASCADE,
+    email_job_id  INTEGER REFERENCES email_jobs(id),
+    filename      TEXT NOT NULL,
+    original_name TEXT NOT NULL,
+    mime_type     TEXT NOT NULL,
+    size          INTEGER NOT NULL,
+    created_at    TEXT DEFAULT (datetime('now'))
+  );
 `);
 
 export default db;

@@ -43,9 +43,7 @@ export default function Admin() {
     <div className="min-h-screen bg-white">
       <header className="border-b bg-white sticky top-0 z-10 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#CC0000] flex items-center justify-center">
-            <span className="text-white font-bold text-xs">LIF</span>
-          </div>
+          <img src="/logo.png" alt="Landvetter IF" className="h-10 w-auto" />
           <div>
             <h1 className="font-bold text-lg leading-tight">Landvetter IF</h1>
             <p className="text-xs text-muted-foreground leading-tight">Cupportalen – Admin</p>

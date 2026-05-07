@@ -30,9 +30,7 @@ export default function AdminLogin() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <div className="w-12 h-12 rounded-full bg-[#CC0000] flex items-center justify-center mx-auto mb-2">
-            <span className="text-white font-bold">LIF</span>
-          </div>
+          <img src="/logo.png" alt="Landvetter IF" className="h-16 w-auto mx-auto mb-2" />
           <CardTitle>Admin-inloggning</CardTitle>
         </CardHeader>
         <CardContent>

@@ -22,13 +22,24 @@ export interface Cup {
   start_date: string;
   end_date?: string;
   age_classes: string;
+  cup_type?: string;
   url?: string;
   description?: string;
+  notes?: string;
   source_email?: string;
   status: 'pending' | 'approved';
   thumbs_up: number;
+  potential_duplicate?: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface Stats {
+  total: number;
+  approved: number;
+  pending: number;
+  total_votes: number;
+  attachment_count: number;
 }
 
 export interface EmailJob {
@@ -59,6 +70,8 @@ export interface CupFilters {
   date_from?: string;
   date_to?: string;
   sort?: 'votes' | 'date';
+  hide_past?: 'true' | 'false';
+  cup_type?: string;
 }
 
 function buildQuery(params: Record<string, string | undefined>): string {
@@ -77,7 +90,9 @@ export const api = {
 
     get: (id: number) => request<Cup>(`/cups/${id}`),
 
-    create: (data: Omit<Cup, 'id' | 'status' | 'thumbs_up' | 'created_at' | 'updated_at' | 'source_email'>) =>
+    icalUrl: (id: number) => `${BASE}/cups/${id}/ical`,
+
+    create: (data: Omit<Cup, 'id' | 'status' | 'thumbs_up' | 'created_at' | 'updated_at' | 'source_email' | 'potential_duplicate'>) =>
       request<{ id: number; message: string }>('/cups', {
         method: 'POST',
         body: JSON.stringify(data),
@@ -88,6 +103,14 @@ export const api = {
 
     voteStatus: (ids: number[]) =>
       request<Record<number, boolean>>(`/cups/vote-status/check?ids=${ids.join(',')}`),
+  },
+
+  subscriptions: {
+    subscribe: (email: string) =>
+      request<{ ok: boolean }>('/subscriptions', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      }),
   },
 
   auth: {
@@ -127,6 +150,22 @@ export const api = {
 
   admin: {
     listCups: () => request<Cup[]>('/admin/cups'),
+
+    stats: () => request<Stats>('/admin/stats'),
+
+    pollNow: () => request<{ ok: boolean }>('/admin/poll-now', { method: 'POST' }),
+
+    exportCsv: async () => {
+      const res = await fetch(`${BASE}/admin/cups.csv`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Kunde inte exportera');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'cuper.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    },
 
     updateCup: (id: number, data: Partial<Cup>) =>
       request<Cup>(`/admin/cups/${id}`, {

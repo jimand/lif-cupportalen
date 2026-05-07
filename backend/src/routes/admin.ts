@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import db from '../services/db';
 import { requireAdmin } from '../middleware/auth';
-import { sendCupNotification } from '../services/gmail';
+import { sendCupNotification, sendSubscriberNotification, pollGmail } from '../services/gmail';
 
 const router = Router();
 router.use(requireAdmin);
@@ -13,8 +13,10 @@ const cupUpdateSchema = z.object({
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')),
   age_classes: z.string().min(1).max(500).optional(),
+  cup_type: z.string().max(20).optional().or(z.literal('')),
   url: z.string().max(500).optional().or(z.literal('')),
   description: z.string().max(2000).optional(),
+  notes: z.string().max(2000).optional(),
   status: z.enum(['pending', 'approved']).optional(),
 });
 
@@ -26,9 +28,52 @@ function normalizeUrl(url: string | undefined | null): string | null {
   return `https://${trimmed}`;
 }
 
+// GET /api/admin/stats
+router.get('/stats', (_req: Request, res: Response) => {
+  const total = (db.prepare(`SELECT COUNT(*) as n FROM cups`).get() as any).n;
+  const approved = (db.prepare(`SELECT COUNT(*) as n FROM cups WHERE status = 'approved'`).get() as any).n;
+  const pending = (db.prepare(`SELECT COUNT(*) as n FROM cups WHERE status = 'pending'`).get() as any).n;
+  const total_votes = (db.prepare(`SELECT COALESCE(SUM(thumbs_up), 0) as n FROM cups`).get() as any).n;
+  const attachment_count = (db.prepare(`SELECT COUNT(*) as n FROM attachments WHERE cup_id IS NOT NULL`).get() as any).n;
+  res.json({ total, approved, pending, total_votes, attachment_count });
+});
+
+// GET /api/admin/cups.csv
+router.get('/cups.csv', (_req: Request, res: Response) => {
+  const cups = db.prepare(`SELECT * FROM cups ORDER BY created_at DESC`).all() as any[];
+  function esc(v: any): string {
+    return `"${String(v ?? '').replace(/"/g, '""')}"`;
+  }
+  const header = ['ID', 'Namn', 'Ort', 'Startdatum', 'Slutdatum', 'Åldrar', 'Spelformat', 'Status', 'Röster', 'Källa', 'Skapad'];
+  const rows = cups.map((c) => [
+    c.id, c.name, c.location, c.start_date, c.end_date ?? '',
+    c.age_classes, c.cup_type ?? '', c.status, c.thumbs_up,
+    c.source_email ?? '', c.created_at,
+  ].map(esc).join(','));
+  const csv = [header.map(esc).join(','), ...rows].join('\r\n');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="cuper.csv"');
+  res.send('﻿' + csv); // BOM for Excel UTF-8
+});
+
+// POST /api/admin/poll-now
+router.post('/poll-now', (_req: Request, res: Response) => {
+  pollGmail().catch(console.error);
+  res.json({ ok: true });
+});
+
 // GET /api/admin/cups – all cups including pending
 router.get('/cups', (_req: Request, res: Response) => {
-  const cups = db.prepare(`SELECT * FROM cups ORDER BY status ASC, created_at DESC`).all();
+  const cups = db.prepare(`
+    SELECT *,
+      EXISTS (
+        SELECT 1 FROM cups c2
+        WHERE c2.id != cups.id
+          AND c2.status != 'pending'
+          AND lower(c2.name) LIKE '%' || lower(substr(cups.name, 1, 10)) || '%'
+      ) as potential_duplicate
+    FROM cups ORDER BY status ASC, created_at DESC
+  `).all();
   res.json(cups);
 });
 
@@ -54,8 +99,10 @@ router.put('/cups/:id', (req: Request, res: Response) => {
       start_date = COALESCE(?, start_date),
       end_date = ?,
       age_classes = COALESCE(?, age_classes),
+      cup_type = ?,
       url = ?,
       description = ?,
+      notes = ?,
       status = COALESCE(?, status),
       updated_at = datetime('now')
     WHERE id = ?
@@ -65,8 +112,10 @@ router.put('/cups/:id', (req: Request, res: Response) => {
     data.start_date ?? null,
     'end_date' in data ? (data.end_date || null) : cup.end_date,
     data.age_classes ?? null,
+    'cup_type' in data ? (data.cup_type || null) : cup.cup_type,
     'url' in data ? normalizeUrl(data.url) : cup.url,
     'description' in data ? (data.description || null) : cup.description,
+    'notes' in data ? (data.notes || null) : cup.notes,
     data.status ?? null,
     req.params.id,
   );
@@ -96,7 +145,15 @@ router.patch('/cups/:id/approve', (req: Request, res: Response) => {
   }
 
   db.prepare(`UPDATE cups SET status = 'approved', updated_at = datetime('now') WHERE id = ?`).run(req.params.id);
-  const updated = db.prepare(`SELECT * FROM cups WHERE id = ?`).get(req.params.id);
+  const updated = db.prepare(`SELECT * FROM cups WHERE id = ?`).get(req.params.id) as any;
+
+  const subscribers = db.prepare(`SELECT email, token FROM subscriptions`).all() as any[];
+  for (const sub of subscribers) {
+    sendSubscriberNotification(updated.name, updated.id, sub.email, sub.token).catch((err) =>
+      console.error(`[${new Date().toISOString()}] Prenumerantmail misslyckades (${sub.email}):`, err)
+    );
+  }
+
   res.json(updated);
 });
 
@@ -125,6 +182,7 @@ router.post('/email-jobs/:id/create-cup', (req: Request, res: Response) => {
     start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')),
     age_classes: z.string().min(1),
+    cup_type: z.string().max(20).optional(),
     url: z.string().max(500).optional().or(z.literal('')),
     description: z.string().optional(),
   });
@@ -135,12 +193,12 @@ router.post('/email-jobs/:id/create-cup', (req: Request, res: Response) => {
     return;
   }
 
-  const { name, location, start_date, end_date, age_classes, url, description } = parsed.data;
+  const { name, location, start_date, end_date, age_classes, cup_type, url, description } = parsed.data;
 
   const cupResult = db.prepare(`
-    INSERT INTO cups (name, location, start_date, end_date, age_classes, url, description, source_email, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-  `).run(name, location, start_date, end_date || null, age_classes, normalizeUrl(url), description || null, job.sender);
+    INSERT INTO cups (name, location, start_date, end_date, age_classes, cup_type, url, description, source_email, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+  `).run(name, location, start_date, end_date || null, age_classes, cup_type || null, normalizeUrl(url), description || null, job.sender);
 
   const cupId = cupResult.lastInsertRowid;
 

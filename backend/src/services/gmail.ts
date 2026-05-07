@@ -205,6 +205,44 @@ export async function sendCupNotification(cupName: string): Promise<void> {
   });
 }
 
+export async function sendSubscriberNotification(
+  cupName: string, cupId: number, subscriberEmail: string, unsubToken: string,
+): Promise<void> {
+  if (!process.env.GMAIL_REFRESH_TOKEN) return;
+
+  const from = process.env.GMAIL_USER || 'me';
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const cupUrl = `${frontendUrl}/cups/${cupId}`;
+  const unsubUrl = `${frontendUrl}/api/subscriptions/unsubscribe?token=${unsubToken}`;
+
+  const subjectText = `Ny cup: ${cupName}`;
+  const subjectEncoded = `=?UTF-8?B?${Buffer.from(subjectText, 'utf-8').toString('base64')}?=`;
+
+  const bodyText = [
+    `En ny cup har godkänts: "${cupName}"`,
+    '',
+    `Visa cupen: ${cupUrl}`,
+    '',
+    `---`,
+    `Avprenumerera: ${unsubUrl}`,
+  ].join('\r\n');
+  const bodyEncoded = Buffer.from(bodyText, 'utf-8').toString('base64');
+
+  const message = [
+    `From: ${from}`,
+    `To: ${subscriberEmail}`,
+    `MIME-Version: 1.0`,
+    `Content-Type: text/plain; charset=utf-8`,
+    `Content-Transfer-Encoding: base64`,
+    `Subject: ${subjectEncoded}`,
+    '',
+    bodyEncoded,
+  ].join('\r\n');
+
+  const encoded = Buffer.from(message).toString('base64url');
+  await gmail.users.messages.send({ userId: from, requestBody: { raw: encoded } });
+}
+
 export function startGmailPoller(): void {
   // Poll every 5 minutes
   cron.schedule('*/5 * * * *', () => {

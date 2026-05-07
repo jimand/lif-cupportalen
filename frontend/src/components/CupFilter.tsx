@@ -9,13 +9,16 @@ interface CupFilterProps {
   onChange: (filters: CupFilters) => void;
 }
 
-const AGES = Array.from({ length: 12 }, (_, i) => i + 7); // 7–18
+const AGES = Array.from({ length: 12 }, (_, i) => i + 7);
+const CUP_TYPES = ['5v5', '7v7', '9v9', '11v11', 'Futsal', 'Hall', 'Annat'];
 
 export function CupFilter({ filters, onChange }: CupFilterProps) {
-  const hasActiveFilters = !!(filters.search || filters.age_class || filters.date_from || filters.date_to);
+  const hasActiveFilters = !!(
+    filters.search || filters.age_class || filters.date_from || filters.date_to || filters.cup_type
+  );
 
   function clear() {
-    onChange({ sort: filters.sort });
+    onChange({ sort: filters.sort, hide_past: filters.hide_past });
   }
 
   return (
@@ -42,6 +45,21 @@ export function CupFilter({ filters, onChange }: CupFilterProps) {
             <SelectItem value="all">Alla åldrar</SelectItem>
             {AGES.map((age) => (
               <SelectItem key={age} value={String(age)}>{age} år</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={filters.cup_type || 'all'}
+          onValueChange={(v) => onChange({ ...filters, cup_type: v === 'all' ? undefined : v })}
+        >
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="Format" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alla format</SelectItem>
+            {CUP_TYPES.map((t) => (
+              <SelectItem key={t} value={t}>{t}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -74,6 +92,17 @@ export function CupFilter({ filters, onChange }: CupFilterProps) {
             <SelectItem value="date">Datum</SelectItem>
           </SelectContent>
         </Select>
+
+        <button
+          onClick={() => onChange({ ...filters, hide_past: filters.hide_past === 'false' ? 'true' : 'false' })}
+          className={`inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border transition-colors ${
+            filters.hide_past !== 'false'
+              ? 'bg-[#CC0000] text-white border-[#CC0000]'
+              : 'bg-white text-muted-foreground border-input hover:bg-muted'
+          }`}
+        >
+          Bara kommande
+        </button>
 
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" onClick={clear} className="gap-1">

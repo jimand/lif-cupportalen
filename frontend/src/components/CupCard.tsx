@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ThumbsUp, MapPin, Calendar, ExternalLink, Users, Paperclip } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ThumbsUp, MapPin, Calendar, ExternalLink, Users, Paperclip, CalendarPlus } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { api, type Cup, type Attachment } from '@/lib/api';
@@ -58,7 +59,9 @@ export function CupCard({ cup, voted, onVoted }: CupCardProps) {
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-lg leading-tight truncate">{cup.name}</h3>
+            <Link to={`/cups/${cup.id}`} className="hover:underline">
+              <h3 className="font-semibold text-lg leading-tight truncate">{cup.name}</h3>
+            </Link>
 
             <div className="mt-2 space-y-1 text-sm text-muted-foreground">
               <div className="flex items-center gap-1.5">
@@ -78,6 +81,9 @@ export function CupCard({ cup, voted, onVoted }: CupCardProps) {
                         {cls}
                       </Badge>
                     ))}
+                    {cup.cup_type && (
+                      <Badge variant="outline" className="text-xs py-0">{cup.cup_type}</Badge>
+                    )}
                   </div>
                 </div>
               )}
@@ -131,6 +137,13 @@ export function CupCard({ cup, voted, onVoted }: CupCardProps) {
                 <span className="text-xs text-muted-foreground font-normal shrink-0">({formatSize(att.size)})</span>
               </a>
             ))}
+            <a
+              href={api.cups.icalUrl(cup.id)}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[#CC0000] font-medium"
+            >
+              <CalendarPlus className="h-3.5 w-3.5 shrink-0" />
+              Lägg i kalender
+            </a>
           </div>
         )}
       </CardContent>

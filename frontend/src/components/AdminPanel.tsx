@@ -6,11 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { api, type Cup, type EmailJob, type Attachment } from '@/lib/api';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { api, type Cup, type EmailJob, type Attachment, type Stats } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
-import { Check, Pencil, Trash2, Mail, Loader2, RefreshCw, Paperclip } from 'lucide-react';
+import { Check, Pencil, Trash2, Mail, Loader2, RefreshCw, Paperclip, Download } from 'lucide-react';
 import { formatDateRange, normalizeUrl } from '@/lib/utils';
 import { AgeSelect } from '@/components/AgeSelect';
+
+const CUP_TYPES = ['5v5', '7v7', '9v9', '11v11', 'Futsal', 'Hall', 'Annat'];
 
 function AttachmentManager({ cupId }: { cupId: number }) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -116,8 +119,10 @@ function CupForm({
     start_date: cup.start_date || '',
     end_date: cup.end_date || '',
     age_classes: cup.age_classes || '',
+    cup_type: cup.cup_type || '',
     url: cup.url || '',
     description: cup.description || '',
+    notes: cup.notes || '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -159,12 +164,26 @@ function CupForm({
           <Input type="date" value={form.end_date} onChange={(e) => set('end_date', e.target.value)} />
         </div>
         <div className="space-y-1 col-span-2">
+          <Label>Spelformat</Label>
+          <Select value={form.cup_type || 'none'} onValueChange={(v) => set('cup_type', v === 'none' ? '' : v)}>
+            <SelectTrigger><SelectValue placeholder="Ej angett" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Ej angett</SelectItem>
+              {CUP_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1 col-span-2">
           <Label>Länk</Label>
           <Input type="text" value={form.url} onChange={(e) => set('url', e.target.value)} placeholder="t.ex. ulvacupen.se" />
         </div>
         <div className="space-y-1 col-span-2">
           <Label>Beskrivning</Label>
           <Textarea value={form.description} onChange={(e) => set('description', e.target.value)} rows={3} />
+        </div>
+        <div className="space-y-1 col-span-2">
+          <Label>Interna anteckningar</Label>
+          <Textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} rows={2} placeholder="Visas bara för admin..." />
         </div>
       </div>
       <div className="flex justify-end gap-2">
@@ -192,8 +211,10 @@ function PendingReviewDialog({
     start_date: cup.start_date,
     end_date: cup.end_date || '',
     age_classes: cup.age_classes,
+    cup_type: cup.cup_type || '',
     url: cup.url || '',
     description: cup.description || '',
+    notes: cup.notes || '',
   });
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
@@ -284,12 +305,26 @@ function PendingReviewDialog({
             </div>
           </div>
           <div className="space-y-1">
+            <Label>Spelformat</Label>
+            <Select value={form.cup_type || 'none'} onValueChange={(v) => set('cup_type', v === 'none' ? '' : v)}>
+              <SelectTrigger><SelectValue placeholder="Ej angett" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Ej angett</SelectItem>
+                {CUP_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
             <Label>Länk</Label>
             <Input type="text" value={form.url} onChange={(e) => set('url', e.target.value)} placeholder="t.ex. ulvacupen.se" />
           </div>
           <div className="space-y-1">
             <Label>Beskrivning</Label>
             <Textarea value={form.description} onChange={(e) => set('description', e.target.value)} rows={4} />
+          </div>
+          <div className="space-y-1">
+            <Label>Interna anteckningar</Label>
+            <Textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} rows={2} placeholder="Visas bara för admin..." />
           </div>
           <AttachmentManager cupId={cup.id} />
         </div>
@@ -327,7 +362,12 @@ function PendingTab({ cups, onRefresh }: { cups: Cup[]; onRefresh: () => void })
         <div key={cup.id} className="border rounded-lg p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="font-medium truncate">{cup.name}</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-medium truncate">{cup.name}</p>
+                {!!cup.potential_duplicate && (
+                  <Badge variant="outline" className="text-orange-600 border-orange-400 shrink-0">Möjlig dubblett</Badge>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground">
                 {cup.location} · {formatDateRange(cup.start_date, cup.end_date)}
               </p>
@@ -387,9 +427,19 @@ function AllCupsTab({ cups, onRefresh }: { cups: Cup[]; onRefresh: () => void })
     }
   }
 
+  async function handleExportCsv() {
+    try { await api.admin.exportCsv(); }
+    catch { toast({ variant: 'destructive', title: 'Fel', description: 'Kunde inte exportera.' }); }
+  }
+
   return (
     <div className="space-y-3">
-      <Input placeholder="Sök cuper..." value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="flex gap-2">
+        <Input placeholder="Sök cuper..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1" />
+        <Button variant="outline" size="sm" onClick={handleExportCsv} className="gap-1 shrink-0">
+          <Download className="h-3.5 w-3.5" /> CSV
+        </Button>
+      </div>
 
       <div className="space-y-2">
         {filtered.map((cup) => (
@@ -493,9 +543,24 @@ function EmailJobsTab() {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
         <Button variant="outline" size="sm" onClick={loadJobs} className="gap-1">
-          <RefreshCw className="h-3.5 w-3.5" /> Uppdatera
+          <RefreshCw className="h-3.5 w-3.5" /> Uppdatera lista
+        </Button>
+        <Button
+          size="sm"
+          className="bg-[#CC0000] hover:bg-[#AA0000] gap-1"
+          onClick={async () => {
+            try {
+              await api.admin.pollNow();
+              toast({ title: 'Klar', description: 'Mailhämtning genomförd.' });
+              loadJobs();
+            } catch {
+              toast({ variant: 'destructive', title: 'Fel', description: 'Kunde inte hämta mail.' });
+            }
+          }}
+        >
+          <Mail className="h-3.5 w-3.5" /> Hämta mail nu
         </Button>
       </div>
 
@@ -583,13 +648,15 @@ function EmailJobsTab() {
 
 export function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [cups, setCups] = useState<Cup[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
   async function loadCups() {
     setLoading(true);
     try {
-      const data = await api.admin.listCups();
+      const [data, s] = await Promise.all([api.admin.listCups(), api.admin.stats()]);
       setCups(data);
+      setStats(s);
     } catch {
       toast({ variant: 'destructive', title: 'Fel', description: 'Kunde inte ladda cuper.' });
     } finally {
@@ -608,7 +675,14 @@ export function AdminPanel({ onLogout }: { onLogout: () => void }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Admin-panel</h2>
+        <div>
+          <h2 className="text-xl font-semibold">Admin-panel</h2>
+          {stats && (
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {stats.total} cuper · {stats.pending} väntande · {stats.total_votes} röster
+            </p>
+          )}
+        </div>
         <Button variant="outline" onClick={onLogout}>Logga ut</Button>
       </div>
 

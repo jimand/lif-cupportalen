@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 export function CupList() {
   const [cups, setCups] = useState<Cup[]>([]);
   const [votedMap, setVotedMap] = useState<Record<number, boolean>>({});
-  const [filters, setFilters] = useState<CupFilters>({ sort: 'votes' });
+  const [filters, setFilters] = useState<CupFilters>({ sort: 'votes', hide_past: 'true' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

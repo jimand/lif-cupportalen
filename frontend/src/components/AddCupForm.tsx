@@ -4,11 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
 import { AgeSelect } from '@/components/AgeSelect';
 import { normalizeUrl } from '@/lib/utils';
 import { Plus } from 'lucide-react';
+
+const CUP_TYPES = ['5v5', '7v7', '9v9', '11v11', 'Futsal', 'Hall', 'Annat'];
 
 interface FormData {
   name: string;
@@ -16,13 +19,14 @@ interface FormData {
   start_date: string;
   end_date: string;
   age_classes: string;
+  cup_type: string;
   url: string;
   description: string;
 }
 
 const EMPTY: FormData = {
   name: '', location: '', start_date: '', end_date: '',
-  age_classes: '', url: '', description: '',
+  age_classes: '', cup_type: '', url: '', description: '',
 };
 
 export function AddCupForm() {
@@ -57,6 +61,7 @@ export function AddCupForm() {
         start_date: form.start_date,
         end_date: form.end_date || undefined,
         age_classes: form.age_classes.trim(),
+        cup_type: form.cup_type || undefined,
         url: normalizeUrl(form.url) || undefined,
         description: form.description.trim() || undefined,
       });
@@ -111,6 +116,19 @@ export function AddCupForm() {
             <Label>Ålder *</Label>
             <AgeSelect value={form.age_classes} onChange={(v) => set('age_classes', v)} />
             {errors.age_classes && <p className="text-xs text-destructive">{errors.age_classes}</p>}
+          </div>
+
+          <div className="space-y-1">
+            <Label>Spelformat</Label>
+            <Select value={form.cup_type || 'none'} onValueChange={(v) => set('cup_type', v === 'none' ? '' : v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Välj format (valfritt)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Ej angett</SelectItem>
+                {CUP_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1">

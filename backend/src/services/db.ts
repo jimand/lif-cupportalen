@@ -60,6 +60,20 @@ db.exec(`
     size          INTEGER NOT NULL,
     created_at    TEXT DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS subscriptions (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    email      TEXT NOT NULL UNIQUE,
+    token      TEXT NOT NULL UNIQUE,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
 `);
+
+for (const col of [
+  `ALTER TABLE cups ADD COLUMN cup_type TEXT`,
+  `ALTER TABLE cups ADD COLUMN notes TEXT`,
+]) {
+  try { db.exec(col); } catch {}
+}
 
 export default db;

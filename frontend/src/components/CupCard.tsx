@@ -39,7 +39,7 @@ export function CupCard({ cup, voted, onVoted }: CupCardProps) {
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-5">
-        {cup.recommended && (
+        {!!cup.recommended && (
           <div className="-mx-5 -mt-5 mb-4 bg-green-600 text-white text-xs font-semibold px-4 py-1.5 rounded-t-lg flex items-center gap-1.5">
             <span>⭐</span> Rekommenderas av Landvetter IF
           </div>

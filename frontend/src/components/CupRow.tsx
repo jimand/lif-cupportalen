@@ -15,12 +15,27 @@ interface CupRowProps {
 export function CupRow({ cup, voted, onVoted }: CupRowProps) {
   const [voting, setVoting] = useState(false);
 
-  const ageClasses = (cup.age_classes ?? '')
+  const ageNums = (cup.age_classes ?? '')
     .split(',')
     .map((s) => parseInt(s.trim()))
     .filter((n) => !isNaN(n))
-    .sort((a, b) => a - b)
-    .map((n) => `${n} år`);
+    .sort((a, b) => a - b);
+  const ageLabel =
+    ageNums.length === 0
+      ? null
+      : ageNums.length === 1
+      ? `${ageNums[0]} år`
+      : `${ageNums[0]}–${ageNums[ageNums.length - 1]} år`;
+
+  const formats = cup.cup_type
+    ? cup.cup_type.split(',').map((t) => t.trim()).filter(Boolean)
+    : [];
+  const formatLabel =
+    formats.length === 0
+      ? null
+      : formats.length === 1
+      ? formats[0]
+      : `${formats[0]} – ${formats[formats.length - 1]}`;
 
   async function handleVote() {
     if (voting) return;
@@ -65,17 +80,16 @@ export function CupRow({ cup, voted, onVoted }: CupRowProps) {
       </div>
 
       <div className="hidden sm:flex flex-wrap gap-1 shrink-0 max-w-[220px] justify-end">
-        {ageClasses.map((cls) => (
-          <Badge key={cls} variant="secondary" className="text-xs py-0 px-1.5">
-            {cls}
+        {ageLabel && (
+          <Badge variant="secondary" className="text-xs py-0 px-1.5">
+            {ageLabel}
           </Badge>
-        ))}
-        {cup.cup_type &&
-          cup.cup_type.split(',').map((t) => (
-            <Badge key={t} variant="outline" className="text-xs py-0 px-1.5">
-              {t.trim()}
-            </Badge>
-          ))}
+        )}
+        {formatLabel && (
+          <Badge variant="outline" className="text-xs py-0 px-1.5">
+            {formatLabel}
+          </Badge>
+        )}
       </div>
 
       <div className="flex items-center gap-1 shrink-0">

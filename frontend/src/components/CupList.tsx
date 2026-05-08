@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { CupCard } from './CupCard';
+import { CupRow } from './CupRow';
 import { CupFilter } from './CupFilter';
 import { api, type Cup, type CupFilters } from '@/lib/api';
 import { Loader2 } from 'lucide-react';
@@ -54,9 +54,9 @@ export function CupList() {
           Inga cuper hittades. Prova att ändra filtren.
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="rounded-lg border divide-y overflow-hidden">
           {cups.map((cup) => (
-            <CupCard
+            <CupRow
               key={cup.id}
               cup={cup}
               voted={!!votedMap[cup.id]}

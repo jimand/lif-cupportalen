@@ -218,6 +218,7 @@ function PendingReviewDialog({
     location: cup.location,
     start_date: cup.start_date,
     end_date: cup.end_date || '',
+    registration_deadline: cup.registration_deadline || '',
     age_classes: cup.age_classes,
     cup_type: cup.cup_type || '',
     url: cup.url || '',
@@ -311,6 +312,11 @@ function PendingReviewDialog({
               <Label>Slutdatum</Label>
               <Input type="date" value={form.end_date} onChange={(e) => set('end_date', e.target.value)} />
             </div>
+            <div className="space-y-1">
+              <Label>Sista anmälningsdatum</Label>
+              <Input type="date" value={form.registration_deadline} onChange={(e) => set('registration_deadline', e.target.value)} />
+            </div>
+            <div className="space-y-1" />
           </div>
           <div className="space-y-2">
             <Label>Spelformat</Label>

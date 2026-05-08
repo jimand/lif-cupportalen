@@ -143,6 +143,7 @@ router.delete('/cups/:id', (req: Request, res: Response) => {
     return;
   }
 
+  db.prepare(`UPDATE email_jobs SET parsed_cup_id = NULL WHERE parsed_cup_id = ?`).run(req.params.id);
   db.prepare(`DELETE FROM cups WHERE id = ?`).run(req.params.id);
   res.json({ ok: true });
 });

@@ -69,6 +69,16 @@ export interface Subscription {
   created_at: string;
 }
 
+export interface DetailedStats {
+  cupsPerMonth: { month: string; count: number }[];
+  topCups: { name: string; votes: number }[];
+  typeDist: { type: string; count: number }[];
+  subsPerMonth: { month: string; count: number }[];
+  emailStats: { status: string; count: number }[];
+  sourceStats: { email: number; manual: number };
+  avgApprovalHours: number | null;
+}
+
 export interface Attachment {
   id: number;
   original_name: string;
@@ -166,6 +176,8 @@ export const api = {
     listCups: () => request<Cup[]>('/admin/cups'),
 
     stats: () => request<Stats>('/admin/stats'),
+
+    detailedStats: () => request<DetailedStats>('/admin/stats/detailed'),
 
     pollNow: () => request<{ ok: boolean }>('/admin/poll-now', { method: 'POST' }),
 

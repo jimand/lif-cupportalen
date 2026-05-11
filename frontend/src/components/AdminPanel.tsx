@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { api, type Cup, type EmailJob, type Attachment, type Stats, type Subscription } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
 import { Check, Pencil, Trash2, Mail, Loader2, RefreshCw, Paperclip, Download, UserPlus, Send } from 'lucide-react';
+import { StatsTab } from '@/components/StatsTab';
 import { formatDateRange, normalizeUrl } from '@/lib/utils';
 import { AgeSelect } from '@/components/AgeSelect';
 import { CupTypeSelect } from '@/components/CupTypeSelect';
@@ -814,6 +815,7 @@ export function AdminPanel({ onLogout }: { onLogout: () => void }) {
           <TabsTrigger value="all">Alla cuper</TabsTrigger>
           <TabsTrigger value="email">E-postinkorg</TabsTrigger>
           <TabsTrigger value="subscribers">Prenumeranter</TabsTrigger>
+          <TabsTrigger value="stats">Statistik</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pending" className="mt-4">
@@ -827,6 +829,9 @@ export function AdminPanel({ onLogout }: { onLogout: () => void }) {
         </TabsContent>
         <TabsContent value="subscribers" className="mt-4">
           <SubscribersTab />
+        </TabsContent>
+        <TabsContent value="stats" className="mt-4">
+          <StatsTab />
         </TabsContent>
       </Tabs>
     </div>

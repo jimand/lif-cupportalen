@@ -292,4 +292,64 @@ router.post('/email-jobs/:id/create-cup', (req: Request, res: Response) => {
   res.status(201).json({ cup_id: cupId });
 });
 
+// GET /api/admin/stats/detailed
+router.get('/stats/detailed', (_req: Request, res: Response) => {
+  const cupsPerMonth = db.prepare(`
+    SELECT strftime('%Y-%m', created_at) as month, COUNT(*) as count
+    FROM cups
+    WHERE created_at >= date('now', '-12 months')
+    GROUP BY month
+    ORDER BY month ASC
+  `).all();
+
+  const topCups = db.prepare(`
+    SELECT name, thumbs_up as votes
+    FROM cups
+    WHERE status = 'approved' AND thumbs_up > 0
+    ORDER BY thumbs_up DESC
+    LIMIT 10
+  `).all();
+
+  const typeDist = db.prepare(`
+    SELECT COALESCE(NULLIF(TRIM(cup_type), ''), 'Okänd') as type, COUNT(*) as count
+    FROM cups
+    WHERE status = 'approved'
+    GROUP BY COALESCE(NULLIF(TRIM(cup_type), ''), 'Okänd')
+    ORDER BY count DESC
+  `).all();
+
+  const subsPerMonth = db.prepare(`
+    SELECT strftime('%Y-%m', created_at) as month, COUNT(*) as count
+    FROM subscriptions
+    WHERE status = 'confirmed'
+    GROUP BY month
+    ORDER BY month ASC
+  `).all();
+
+  const emailStats = db.prepare(`
+    SELECT status, COUNT(*) as count
+    FROM email_jobs
+    GROUP BY status
+  `).all() as { status: string; count: number }[];
+
+  const emailCount = (db.prepare(`SELECT COUNT(*) as n FROM cups WHERE source_email IS NOT NULL`).get() as any).n;
+  const manualCount = (db.prepare(`SELECT COUNT(*) as n FROM cups WHERE source_email IS NULL`).get() as any).n;
+
+  const avgRow = db.prepare(`
+    SELECT AVG((julianday(updated_at) - julianday(created_at)) * 24) as hours
+    FROM cups
+    WHERE status = 'approved' AND updated_at > created_at
+  `).get() as any;
+
+  res.json({
+    cupsPerMonth,
+    topCups,
+    typeDist,
+    subsPerMonth,
+    emailStats,
+    sourceStats: { email: emailCount, manual: manualCount },
+    avgApprovalHours: avgRow?.hours ? Math.round(avgRow.hours * 10) / 10 : null,
+  });
+});
+
 export default router;

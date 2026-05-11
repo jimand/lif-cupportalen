@@ -6,6 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Landvetter IF – Cupportalen</title>
     <meta name="description" content="Hitta och rekommendera fotbollscuper för Landvetter IF" />
+    <script>
+      (function () {
+        var url = '%VITE_UMAMI_URL%';
+        var id = '%VITE_UMAMI_WEBSITE_ID%';
+        if (!url || !id || url === '%VITE_UMAMI_URL%') return;
+        var s = document.createElement('script');
+        s.defer = true;
+        s.src = url + '/script.js';
+        s.setAttribute('data-website-id', id);
+        document.head.appendChild(s);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

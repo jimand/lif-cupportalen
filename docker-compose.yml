@@ -15,11 +15,11 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev
-    ports:
-      - "5173:5173"
-    environment:
-      - API_PROXY_TARGET=http://backend:3001
+      dockerfile: Dockerfile
+      args:
+        - VITE_UMAMI_URL=${VITE_UMAMI_URL}
+        - VITE_UMAMI_WEBSITE_ID=${VITE_UMAMI_WEBSITE_ID}
+        - VITE_UMAMI_SHARE_URL=${VITE_UMAMI_SHARE_URL}
     depends_on:
       - backend
     restart: unless-stopped

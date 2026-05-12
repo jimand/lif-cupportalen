@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { api, type Cup, type EmailJob, type Attachment, type Stats, type Subscription } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
-import { Check, Pencil, Trash2, Mail, Loader2, RefreshCw, Paperclip, Download, UserPlus, Send } from 'lucide-react';
+import { Check, Pencil, Trash2, Mail, Loader2, RefreshCw, Paperclip, Download, UserPlus, Send, X } from 'lucide-react';
 import { StatsTab } from '@/components/StatsTab';
 import { formatDateRange, normalizeUrl } from '@/lib/utils';
 import { AgeSelect } from '@/components/AgeSelect';
@@ -228,6 +228,9 @@ function PendingReviewDialog({
   });
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [submittingReject, setSubmittingReject] = useState(false);
 
   function set(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -274,6 +277,20 @@ function PendingReviewDialog({
       onRefresh();
     } catch {
       toast({ variant: 'destructive', title: 'Fel', description: 'Kunde inte radera.' });
+    }
+  }
+
+  async function handleReject() {
+    setSubmittingReject(true);
+    try {
+      await api.admin.rejectCup(cup.id, rejectReason || undefined);
+      toast({ title: 'Nekad', description: 'Cupen har nekats.' });
+      onClose();
+      onRefresh();
+    } catch {
+      toast({ variant: 'destructive', title: 'Fel', description: 'Kunde inte neka cupen.' });
+    } finally {
+      setSubmittingReject(false);
     }
   }
 
@@ -338,10 +355,46 @@ function PendingReviewDialog({
           <AttachmentManager cupId={cup.id} />
         </div>
 
+        {rejecting && (
+          <div className="space-y-2 pt-2 border-t">
+            <Label>Anledning till nekande (valfritt)</Label>
+            <Textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="T.ex. för gammal information, dubblett..."
+              rows={2}
+            />
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="outline" size="sm" onClick={() => setRejecting(false)}>Avbryt</Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                onClick={handleReject}
+                disabled={submittingReject}
+                className="gap-1"
+              >
+                <X className="h-3.5 w-3.5" />
+                {submittingReject ? 'Nekar...' : 'Bekräfta nekande'}
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-between gap-2 pt-2">
-          <Button variant="destructive" size="sm" onClick={handleDelete} className="gap-1">
-            <Trash2 className="h-3.5 w-3.5" /> Radera
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="destructive" size="sm" onClick={handleDelete} className="gap-1">
+              <Trash2 className="h-3.5 w-3.5" /> Radera
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRejecting((r) => !r)}
+              className="gap-1 text-orange-600 border-orange-300 hover:bg-orange-50"
+            >
+              <X className="h-3.5 w-3.5" /> Neka
+            </Button>
+          </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleSave} disabled={saving || approving}>
               {saving ? 'Sparar...' : 'Spara ändringar'}
@@ -456,11 +509,16 @@ function AllCupsTab({ cups, onRefresh }: { cups: Cup[]; onRefresh: () => void })
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <p className="font-medium truncate">{cup.name}</p>
-                <Badge variant={cup.status === 'approved' ? 'default' : 'secondary'}>
-                  {cup.status === 'approved' ? 'Godkänd' : 'Väntande'}
+                <Badge variant={cup.status === 'approved' ? 'default' : cup.status === 'rejected' ? 'destructive' : 'secondary'}>
+                  {cup.status === 'approved' ? 'Godkänd' : cup.status === 'rejected' ? 'Nekad' : 'Väntande'}
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground">{cup.location} · {formatDateRange(cup.start_date, cup.end_date)}</p>
+              {cup.status === 'rejected' && cup.rejected_reason && (
+                <p className="text-xs text-red-500 mt-0.5 truncate" title={cup.rejected_reason}>
+                  Anledning: {cup.rejected_reason}
+                </p>
+              )}
             </div>
             <div className="flex gap-2 shrink-0">
               <Button size="sm" variant="outline" onClick={() => setEditCup(cup)} className="gap-1">
@@ -710,6 +768,24 @@ function SubscribersTab() {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1"
+          onClick={async () => {
+            try {
+              await api.admin.digestNow();
+              toast({ title: 'Digest skickad', description: 'Veckosammanfattning skickad till prenumeranter.' });
+            } catch {
+              toast({ variant: 'destructive', title: 'Fel', description: 'Kunde inte skicka digest.' });
+            }
+          }}
+        >
+          <Send className="h-3.5 w-3.5" /> Skicka digest nu
+        </Button>
+      </div>
+
       <form onSubmit={handleAdd} className="flex gap-2">
         <Input
           type="email"
@@ -733,13 +809,16 @@ function SubscribersTab() {
             <div key={sub.id} className="border rounded-lg px-4 py-3 flex items-center justify-between gap-4">
               <div className="min-w-0">
                 <p className="font-medium truncate">{sub.email}</p>
-                <div className="flex items-center gap-2 mt-0.5">
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                   <Badge variant={sub.status === 'confirmed' ? 'default' : 'secondary'}>
                     {sub.status === 'confirmed' ? 'Bekräftad' : 'Väntar på bekräftelse'}
                   </Badge>
                   <span className="text-xs text-muted-foreground">
                     {new Date(sub.created_at).toLocaleDateString('sv-SE')}
                   </span>
+                  {sub.age_classes && (
+                    <span className="text-xs text-muted-foreground">Åldrar: {sub.age_classes}</span>
+                  )}
                 </div>
               </div>
               <div className="flex gap-2 shrink-0">

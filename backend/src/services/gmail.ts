@@ -338,10 +338,88 @@ export async function sendUnsubscribeConfirmationEmail(email: string): Promise<v
   await gmail.users.messages.send({ userId: from, requestBody: { raw: encoded } });
 }
 
+export async function sendWeeklyDigest(): Promise<void> {
+  if (!process.env.GMAIL_REFRESH_TOKEN) return;
+
+  const cups = db.prepare(`
+    SELECT id, name, age_classes FROM cups
+    WHERE status = 'approved' AND updated_at >= datetime('now', '-7 days')
+    ORDER BY updated_at DESC
+  `).all() as any[];
+
+  if (cups.length === 0) {
+    console.log(`[${new Date().toISOString()}] Digest: Inga nya cupar den senaste veckan, hoppar över`);
+    return;
+  }
+
+  const subscribers = db.prepare(`SELECT email, token, age_classes FROM subscriptions WHERE status = 'confirmed'`).all() as any[];
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const from = process.env.GMAIL_USER || 'me';
+  let sent = 0;
+
+  for (const sub of subscribers) {
+    const subAges = sub.age_classes
+      ? new Set(sub.age_classes.split(',').map((s: string) => s.trim()).filter(Boolean))
+      : null;
+
+    const relevantCups = subAges
+      ? cups.filter((cup: any) =>
+          cup.age_classes.split(',').map((s: string) => s.trim()).some((a: string) => subAges.has(a))
+        )
+      : cups;
+
+    if (relevantCups.length === 0) continue;
+
+    const cupList = relevantCups
+      .map((cup: any) => `• ${cup.name} – ${frontendUrl}/cups/${cup.id}`)
+      .join('\r\n');
+    const unsubUrl = `${frontendUrl}/api/subscriptions/unsubscribe?token=${sub.token}`;
+
+    const subjectText = `Veckans cupar – ${relevantCups.length} nya på Landvetter IF Cupportalen`;
+    const subjectEncoded = `=?UTF-8?B?${Buffer.from(subjectText, 'utf-8').toString('base64')}?=`;
+
+    const bodyText = [
+      `Här är veckans nya cupar på Landvetter IF Cupportalen:`,
+      '',
+      cupList,
+      '',
+      `Se alla cupar: ${frontendUrl}`,
+      '',
+      `---`,
+      `Avprenumerera: ${unsubUrl}`,
+    ].join('\r\n');
+    const bodyEncoded = Buffer.from(bodyText, 'utf-8').toString('base64');
+
+    const message = [
+      `From: ${from}`,
+      `To: ${sub.email}`,
+      `MIME-Version: 1.0`,
+      `Content-Type: text/plain; charset=utf-8`,
+      `Content-Transfer-Encoding: base64`,
+      `Subject: ${subjectEncoded}`,
+      '',
+      bodyEncoded,
+    ].join('\r\n');
+
+    const encoded = Buffer.from(message).toString('base64url');
+    try {
+      await gmail.users.messages.send({ userId: from, requestBody: { raw: encoded } });
+      sent++;
+    } catch (err) {
+      console.error(`[${new Date().toISOString()}] Digest: Misslyckades skicka till ${sub.email}:`, err);
+    }
+  }
+
+  console.log(`[${new Date().toISOString()}] Digest: Skickad till ${sent} prenumeranter, ${cups.length} cupar inkluderade`);
+}
+
 export function startGmailPoller(): void {
-  // Poll every 5 minutes
   cron.schedule('*/5 * * * *', () => {
     pollGmail().catch(console.error);
   });
-  console.log(`[${new Date().toISOString()}] Gmail: Poller startad (var 5:e minut)`);
+  // Weekly digest: Mondays at 08:00
+  cron.schedule('0 8 * * 1', () => {
+    sendWeeklyDigest().catch(console.error);
+  });
+  console.log(`[${new Date().toISOString()}] Gmail: Poller startad (var 5:e minut), veckodigest varje måndag 08:00`);
 }

@@ -25,16 +25,19 @@ const confirmLimiter = rateLimit({
 
 // POST /api/subscriptions – double opt-in
 router.post('/subscriptions', subscribeLimiter, (req: Request, res: Response) => {
-  const parsed = z.object({ email: z.string().email() }).safeParse(req.body);
+  const parsed = z.object({
+    email: z.string().email(),
+    age_classes: z.string().max(200).optional(),
+  }).safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Ogiltig e-postadress' });
     return;
   }
   const token = randomUUID();
   const result = db.prepare(
-    `INSERT OR IGNORE INTO subscriptions (email, token, status, token_expires_at)
-     VALUES (?, ?, 'pending', datetime('now', '+48 hours'))`
-  ).run(parsed.data.email, token);
+    `INSERT OR IGNORE INTO subscriptions (email, token, status, token_expires_at, age_classes)
+     VALUES (?, ?, 'pending', datetime('now', '+48 hours'), ?)`
+  ).run(parsed.data.email, token, parsed.data.age_classes || null);
 
   if (result.changes > 0) {
     sendConfirmationEmail(parsed.data.email, token).catch((err) =>

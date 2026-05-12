@@ -6,6 +6,7 @@ import { requireAdmin } from '../middleware/auth';
 import {
   sendCupNotification, sendSubscriberNotification, pollGmail,
   sendWelcomeEmail, sendUnsubscribeConfirmationEmail, sendConfirmationEmail,
+  sendWeeklyDigest,
 } from '../services/gmail';
 
 const router = Router();
@@ -21,7 +22,7 @@ const cupUpdateSchema = z.object({
   url: z.string().max(500).optional().or(z.literal('')),
   description: z.string().max(2000).optional(),
   notes: z.string().max(2000).optional(),
-  status: z.enum(['pending', 'approved']).optional(),
+  status: z.enum(['pending', 'approved', 'rejected']).optional(),
   recommended: z.boolean().optional(),
   registration_deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')),
 });
@@ -65,6 +66,12 @@ router.get('/cups.csv', (_req: Request, res: Response) => {
 // POST /api/admin/poll-now
 router.post('/poll-now', (_req: Request, res: Response) => {
   pollGmail().catch(console.error);
+  res.json({ ok: true });
+});
+
+// POST /api/admin/digest-now
+router.post('/digest-now', (_req: Request, res: Response) => {
+  sendWeeklyDigest().catch(console.error);
   res.json({ ok: true });
 });
 
@@ -159,13 +166,39 @@ router.patch('/cups/:id/approve', (req: Request, res: Response) => {
   db.prepare(`UPDATE cups SET status = 'approved', updated_at = datetime('now') WHERE id = ?`).run(req.params.id);
   const updated = db.prepare(`SELECT * FROM cups WHERE id = ?`).get(req.params.id) as any;
 
-  const subscribers = db.prepare(`SELECT email, token FROM subscriptions WHERE status = 'confirmed'`).all() as any[];
+  const subscribers = db.prepare(`SELECT email, token, age_classes FROM subscriptions WHERE status = 'confirmed'`).all() as any[];
+  const cupAges = new Set((updated.age_classes as string).split(',').map((s: string) => s.trim()).filter(Boolean));
   for (const sub of subscribers) {
+    const shouldNotify = !sub.age_classes || sub.age_classes.split(',').map((s: string) => s.trim()).some((a: string) => cupAges.has(a));
+    if (!shouldNotify) continue;
     sendSubscriberNotification(updated.name, updated.id, sub.email, sub.token).catch((err) =>
       console.error(`[${new Date().toISOString()}] Prenumerantmail misslyckades (${sub.email}):`, err)
     );
   }
 
+  res.json(updated);
+});
+
+// PATCH /api/admin/cups/:id/reject
+router.patch('/cups/:id/reject', (req: Request, res: Response) => {
+  const cup = db.prepare(`SELECT id FROM cups WHERE id = ?`).get(req.params.id);
+  if (!cup) {
+    res.status(404).json({ error: 'Cupen hittades inte' });
+    return;
+  }
+
+  const parsed = z.object({ reason: z.string().max(500).optional() }).safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Ogiltiga uppgifter' });
+    return;
+  }
+
+  db.prepare(`UPDATE cups SET status = 'rejected', rejected_reason = ?, updated_at = datetime('now') WHERE id = ?`).run(
+    parsed.data.reason || null,
+    req.params.id,
+  );
+
+  const updated = db.prepare(`SELECT * FROM cups WHERE id = ?`).get(req.params.id);
   res.json(updated);
 });
 

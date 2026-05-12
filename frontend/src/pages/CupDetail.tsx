@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { MapPin, Calendar, Users, ExternalLink, Paperclip, ThumbsUp, ArrowLeft, CalendarPlus } from 'lucide-react';
+import { MapPin, Calendar, Users, ExternalLink, Paperclip, ThumbsUp, ArrowLeft, CalendarPlus, Share2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { api, type Cup, type Attachment } from '@/lib/api';
 import { formatDateRange } from '@/lib/utils';
@@ -150,6 +150,22 @@ export default function CupDetail() {
                 className="inline-flex items-center gap-1.5 text-sm text-[#CC0000] hover:text-[#AA0000] font-medium"
               >
                 <CalendarPlus className="h-4 w-4" /> Lägg i kalender
+              </a>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(cup.name + ' – ' + window.location.href)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm text-[#25D366] hover:text-[#1aab52] font-medium"
+              >
+                <Share2 className="h-4 w-4" /> WhatsApp
+              </a>
+              <a
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm text-[#1877F2] hover:text-[#0d65d9] font-medium"
+              >
+                <Share2 className="h-4 w-4" /> Facebook
               </a>
             </div>
 

@@ -76,6 +76,8 @@ for (const col of [
   `ALTER TABLE subscriptions ADD COLUMN token_expires_at TEXT`,
   `ALTER TABLE cups ADD COLUMN recommended INTEGER DEFAULT 0`,
   `ALTER TABLE cups ADD COLUMN registration_deadline TEXT`,
+  `ALTER TABLE cups ADD COLUMN rejected_reason TEXT`,
+  `ALTER TABLE subscriptions ADD COLUMN age_classes TEXT`,
 ]) {
   try { db.exec(col); } catch {}
 }

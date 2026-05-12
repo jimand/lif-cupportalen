@@ -32,10 +32,11 @@ export interface Cup {
   description?: string;
   notes?: string;
   source_email?: string;
-  status: 'pending' | 'approved';
+  status: 'pending' | 'approved' | 'rejected';
   thumbs_up: number;
   recommended?: boolean;
   registration_deadline?: string;
+  rejected_reason?: string;
   potential_duplicate?: number;
   created_at: string;
   updated_at: string;
@@ -66,6 +67,7 @@ export interface Subscription {
   id: number;
   email: string;
   status: 'pending' | 'confirmed';
+  age_classes?: string;
   created_at: string;
 }
 
@@ -130,10 +132,10 @@ export const api = {
   },
 
   subscriptions: {
-    subscribe: (email: string) =>
+    subscribe: (email: string, age_classes?: string) =>
       request<{ ok: boolean; pending?: boolean }>('/subscriptions', {
         method: 'POST',
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, age_classes }),
       }),
   },
 
@@ -181,6 +183,8 @@ export const api = {
 
     pollNow: () => request<{ ok: boolean }>('/admin/poll-now', { method: 'POST' }),
 
+    digestNow: () => request<{ ok: boolean }>('/admin/digest-now', { method: 'POST' }),
+
     exportCsv: async () => {
       const res = await fetch(`${BASE}/admin/cups.csv`, { credentials: 'include' });
       if (!res.ok) throw new Error('Kunde inte exportera');
@@ -204,6 +208,12 @@ export const api = {
 
     approveCup: (id: number) =>
       request<Cup>(`/admin/cups/${id}/approve`, { method: 'PATCH' }),
+
+    rejectCup: (id: number, reason?: string) =>
+      request<Cup>(`/admin/cups/${id}/reject`, {
+        method: 'PATCH',
+        body: JSON.stringify({ reason }),
+      }),
 
     listEmailJobs: () => request<EmailJob[]>('/admin/email-jobs'),
 

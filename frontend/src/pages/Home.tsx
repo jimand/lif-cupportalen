@@ -4,11 +4,13 @@ import { AddCupForm } from '@/components/AddCupForm';
 import { Toaster } from '@/components/ui/toaster';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { AgeSelect } from '@/components/AgeSelect';
 import { api } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
 
 function SubscribeSection() {
   const [email, setEmail] = useState('');
+  const [ageClasses, setAgeClasses] = useState('');
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -17,9 +19,10 @@ function SubscribeSection() {
     if (!email) return;
     setLoading(true);
     try {
-      await api.subscriptions.subscribe(email);
+      await api.subscriptions.subscribe(email, ageClasses || undefined);
       setDone(true);
       setEmail('');
+      setAgeClasses('');
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Fel', description: err.message || 'Kunde inte prenumerera.' });
     } finally {
@@ -34,18 +37,24 @@ function SubscribeSection() {
       {done ? (
         <p className="text-sm text-green-600 font-medium">Kolla din inkorg! Vi har skickat en bekräftelselänk till din e-postadress.</p>
       ) : (
-        <form onSubmit={handleSubmit} className="flex gap-2 justify-center max-w-sm mx-auto">
-          <Input
-            type="email"
-            placeholder="din@epost.se"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="flex-1"
-          />
-          <Button type="submit" disabled={loading} className="bg-[#CC0000] hover:bg-[#AA0000] shrink-0">
-            {loading ? 'Sparar...' : 'Prenumerera'}
-          </Button>
+        <form onSubmit={handleSubmit} className="space-y-3 max-w-sm mx-auto">
+          <div className="flex gap-2">
+            <Input
+              type="email"
+              placeholder="din@epost.se"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="flex-1"
+            />
+            <Button type="submit" disabled={loading} className="bg-[#CC0000] hover:bg-[#AA0000] shrink-0">
+              {loading ? 'Sparar...' : 'Prenumerera'}
+            </Button>
+          </div>
+          <div className="text-left">
+            <p className="text-xs text-muted-foreground mb-1.5">Filtrera notiser per åldersgrupp (valfritt)</p>
+            <AgeSelect value={ageClasses} onChange={setAgeClasses} />
+          </div>
         </form>
       )}
     </section>

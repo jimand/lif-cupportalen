@@ -1,4 +1,5 @@
-import { Search, X } from 'lucide-react';
+import { Search, X, SlidersHorizontal } from 'lucide-react';
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,9 +14,9 @@ interface CupFilterProps {
 const AGES = Array.from({ length: 12 }, (_, i) => i + 7);
 
 export function CupFilter({ filters, onChange }: CupFilterProps) {
-  const hasActiveFilters = !!(
-    filters.search || filters.age_class || filters.date_from || filters.date_to || filters.cup_type
-  );
+  const activeCount = [filters.search, filters.age_class, filters.date_from, filters.date_to, filters.cup_type].filter(Boolean).length;
+  const hasActiveFilters = activeCount > 0;
+  const [open, setOpen] = useState(hasActiveFilters);
 
   function clear() {
     onChange({ sort: filters.sort, hide_past: filters.hide_past, cup_type: undefined });
@@ -23,17 +24,35 @@ export function CupFilter({ filters, onChange }: CupFilterProps) {
 
   return (
     <div className="space-y-3">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Sök på namn eller ort..."
-          value={filters.search || ''}
-          onChange={(e) => onChange({ ...filters, search: e.target.value })}
-          className="pl-9"
-        />
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Sök på namn eller ort..."
+            value={filters.search || ''}
+            onChange={(e) => onChange({ ...filters, search: e.target.value })}
+            className="pl-9"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-sm font-medium transition-colors shrink-0 ${
+            open && hasActiveFilters
+              ? 'bg-[#CC0000] text-white border-[#CC0000]'
+              : open
+              ? 'bg-muted border-input text-foreground'
+              : hasActiveFilters
+              ? 'border-[#CC0000] text-[#CC0000] bg-white'
+              : 'border-input text-muted-foreground bg-white hover:bg-muted'
+          }`}
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+          Filtrera{activeCount > 0 ? ` (${activeCount})` : ''}
+        </button>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      {open && <div className="flex flex-wrap gap-2">
         <Select
           value={filters.age_class || 'all'}
           onValueChange={(v) => onChange({ ...filters, age_class: v === 'all' ? undefined : v })}
@@ -119,7 +138,7 @@ export function CupFilter({ filters, onChange }: CupFilterProps) {
             Rensa filter
           </Button>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

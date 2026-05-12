@@ -10,7 +10,7 @@
       (function () {
         var url = '%VITE_UMAMI_URL%';
         var id = '%VITE_UMAMI_WEBSITE_ID%';
-        if (!url || !id || url === '%VITE_UMAMI_URL%') return;
+        if (!url || !id) return;
         var s = document.createElement('script');
         s.defer = true;
         s.src = url + '/script.js';

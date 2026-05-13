@@ -7,6 +7,12 @@ import { sendConfirmationEmail, sendUnsubscribeConfirmationEmail, sendWelcomeEma
 
 const router = Router();
 
+function maskEmail(email: string): string {
+  const at = email.indexOf('@');
+  if (at < 1) return '***';
+  return email[0] + '***' + email.slice(at);
+}
+
 const CSRF_COOKIE = 'csrf_token';
 
 function setCsrfToken(res: Response): string {
@@ -65,7 +71,7 @@ router.post('/subscriptions', subscribeLimiter, (req: Request, res: Response) =>
 
   if (result.changes > 0) {
     sendConfirmationEmail(parsed.data.email, token).catch((err) =>
-      console.error(`[${new Date().toISOString()}] Bekräftelsemail misslyckades (${parsed.data.email}):`, err)
+      console.error(`[${new Date().toISOString()}] Bekräftelsemail misslyckades (${maskEmail(parsed.data.email)}):`, err)
     );
   }
 
@@ -167,7 +173,7 @@ router.post('/subscriptions/confirm', confirmLimiter, (req: Request, res: Respon
   db.prepare(`UPDATE subscriptions SET status = 'confirmed', token = ?, token_expires_at = NULL WHERE id = ?`).run(unsubToken, sub.id);
 
   sendWelcomeEmail(sub.email, unsubToken).catch((err) =>
-    console.error(`[${new Date().toISOString()}] Välkomstmail misslyckades (${sub.email}):`, err)
+    console.error(`[${new Date().toISOString()}] Välkomstmail misslyckades (${maskEmail(sub.email)}):`, err)
   );
 
   res.send(`
@@ -241,7 +247,7 @@ router.post('/subscriptions/unsubscribe', confirmLimiter, (req: Request, res: Re
 
   if (sub?.email) {
     sendUnsubscribeConfirmationEmail(sub.email).catch((err) =>
-      console.error(`[${new Date().toISOString()}] Avprenumerationsmail misslyckades (${sub.email}):`, err)
+      console.error(`[${new Date().toISOString()}] Avprenumerationsmail misslyckades (${maskEmail(sub.email)}):`, err)
     );
   }
 

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 import db from '../services/db';
 import { requireAdmin } from '../middleware/auth';
 import {
@@ -11,6 +12,21 @@ import {
 
 const router = Router();
 router.use(requireAdmin);
+
+// Throttle bulk-data exports so a compromised session can't silently dump everything
+const bulkDataLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'För många förfrågningar, försök igen om 10 minuter' },
+});
+
+function maskEmail(email: string): string {
+  const at = email.indexOf('@');
+  if (at < 1) return '***';
+  return email[0] + '***' + email.slice(at);
+}
 
 const cupUpdateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
@@ -46,7 +62,7 @@ router.get('/stats', (_req: Request, res: Response) => {
 });
 
 // GET /api/admin/cups.csv
-router.get('/cups.csv', (_req: Request, res: Response) => {
+router.get('/cups.csv', bulkDataLimiter, (_req: Request, res: Response) => {
   const cups = db.prepare(`SELECT * FROM cups ORDER BY created_at DESC`).all() as any[];
   function esc(v: any): string {
     return `"${String(v ?? '').replace(/"/g, '""')}"`;
@@ -172,7 +188,7 @@ router.patch('/cups/:id/approve', (req: Request, res: Response) => {
     const shouldNotify = !sub.age_classes || sub.age_classes.split(',').map((s: string) => s.trim()).some((a: string) => cupAges.has(a));
     if (!shouldNotify) continue;
     sendSubscriberNotification(updated.name, updated.id, sub.email, sub.token).catch((err) =>
-      console.error(`[${new Date().toISOString()}] Prenumerantmail misslyckades (${sub.email}):`, err)
+      console.error(`[${new Date().toISOString()}] Prenumerantmail misslyckades (${maskEmail(sub.email)}):`, err)
     );
   }
 
@@ -203,7 +219,7 @@ router.patch('/cups/:id/reject', (req: Request, res: Response) => {
 });
 
 // GET /api/admin/subscriptions
-router.get('/subscriptions', (_req: Request, res: Response) => {
+router.get('/subscriptions', bulkDataLimiter, (_req: Request, res: Response) => {
   const subs = db.prepare(`SELECT id, email, status, created_at FROM subscriptions ORDER BY created_at DESC`).all();
   res.json(subs);
 });
@@ -224,7 +240,7 @@ router.post('/subscriptions', (req: Request, res: Response) => {
     return;
   }
   sendWelcomeEmail(parsed.data.email, token).catch((err) =>
-    console.error(`[${new Date().toISOString()}] Välkomstmail misslyckades (${parsed.data.email}):`, err)
+    console.error(`[${new Date().toISOString()}] Välkomstmail misslyckades (${maskEmail(parsed.data.email)}):`, err)
   );
   res.json({ ok: true });
 });
@@ -238,7 +254,7 @@ router.delete('/subscriptions/:id', (req: Request, res: Response) => {
   }
   db.prepare(`DELETE FROM subscriptions WHERE id = ?`).run(req.params.id);
   sendUnsubscribeConfirmationEmail(sub.email).catch((err) =>
-    console.error(`[${new Date().toISOString()}] Avprenumerationsmail misslyckades (${sub.email}):`, err)
+    console.error(`[${new Date().toISOString()}] Avprenumerationsmail misslyckades (${maskEmail(sub.email)}):`, err)
   );
   res.json({ ok: true });
 });
@@ -252,18 +268,18 @@ router.post('/subscriptions/:id/resend', (req: Request, res: Response) => {
   }
   if (sub.status === 'pending') {
     sendConfirmationEmail(sub.email, sub.token).catch((err) =>
-      console.error(`[${new Date().toISOString()}] Bekräftelsemail misslyckades (${sub.email}):`, err)
+      console.error(`[${new Date().toISOString()}] Bekräftelsemail misslyckades (${maskEmail(sub.email)}):`, err)
     );
   } else {
     sendWelcomeEmail(sub.email, sub.token).catch((err) =>
-      console.error(`[${new Date().toISOString()}] Välkomstmail misslyckades (${sub.email}):`, err)
+      console.error(`[${new Date().toISOString()}] Välkomstmail misslyckades (${maskEmail(sub.email)}):`, err)
     );
   }
   res.json({ ok: true });
 });
 
 // GET /api/admin/email-jobs
-router.get('/email-jobs', (_req: Request, res: Response) => {
+router.get('/email-jobs', bulkDataLimiter, (_req: Request, res: Response) => {
   try {
     const jobs = db.prepare(`
       SELECT ej.*, c.name as cup_name

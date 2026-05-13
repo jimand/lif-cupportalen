@@ -126,7 +126,7 @@ export async function pollGmail(): Promise<void> {
         const jobResult = db.prepare(`
           INSERT INTO email_jobs (gmail_message_id, subject, sender, raw_body, status, received_at)
           VALUES (?, ?, ?, ?, 'pending', ?)
-        `).run(msg.id, subject, sender, rawBody, dateHeader);
+        `).run(msg.id, subject, sender, rawBody.slice(0, 2000), dateHeader);
 
         const jobId = jobResult.lastInsertRowid;
 
@@ -412,7 +412,8 @@ export async function sendWeeklyDigest(): Promise<void> {
       await gmail.users.messages.send({ userId: from, requestBody: { raw: encoded } });
       sent++;
     } catch (err) {
-      console.error(`[${new Date().toISOString()}] Digest: Misslyckades skicka till ${sub.email}:`, err);
+      const masked = sub.email[0] + '***' + sub.email.slice(sub.email.indexOf('@'));
+      console.error(`[${new Date().toISOString()}] Digest: Misslyckades skicka till ${masked}:`, err);
     }
   }
 
@@ -426,6 +427,15 @@ export function startGmailPoller(): void {
   // Weekly digest: Mondays at 08:00
   cron.schedule('0 8 * * 1', () => {
     sendWeeklyDigest().catch(console.error);
+  });
+  // Daily cleanup: remove pending subscriptions whose confirmation link has expired
+  cron.schedule('0 3 * * *', () => {
+    const result = db.prepare(
+      `DELETE FROM subscriptions WHERE status = 'pending' AND token_expires_at < datetime('now')`
+    ).run();
+    if (result.changes > 0) {
+      console.log(`[${new Date().toISOString()}] Städning: Raderade ${result.changes} utgångna väntande prenumerationer`);
+    }
   });
   console.log(`[${new Date().toISOString()}] Gmail: Poller startad (var 5:e minut), veckodigest varje måndag 08:00`);
 }

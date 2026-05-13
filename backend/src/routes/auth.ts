@@ -33,13 +33,12 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
     return;
   }
 
-  let valid = false;
-  // Support both plain text (dev) and bcrypt hash
-  if (adminPassword.startsWith('$2')) {
-    valid = await bcrypt.compare(password, adminPassword);
-  } else {
-    valid = password === adminPassword;
+  if (!adminPassword.startsWith('$2')) {
+    res.status(500).json({ error: 'Serverkonfigurationsfel: ADMIN_PASSWORD måste vara ett bcrypt-hash' });
+    return;
   }
+
+  const valid = await bcrypt.compare(password, adminPassword);
 
   if (!valid) {
     res.status(401).json({ error: 'Fel lösenord' });

@@ -27,6 +27,8 @@ const ALLOWED_ATTACHMENT_TYPES = new Set([
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ]);
 
+const MAX_ATTACHMENT_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
 function collectAttachmentParts(payload: any, acc: any[] = []): any[] {
   if (!payload) return acc;
   if (payload.filename && payload.body?.attachmentId) acc.push(payload);
@@ -46,6 +48,10 @@ async function saveEmailAttachments(messageId: string, jobId: number, cupId: num
       const data = attRes.data.data;
       if (!data) continue;
       const buffer = Buffer.from(data.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+      if (buffer.length > MAX_ATTACHMENT_SIZE_BYTES) {
+        console.warn(`[${new Date().toISOString()}] Gmail: Bilaga för stor (${buffer.length} B), hoppar över: ${part.filename}`);
+        continue;
+      }
       const { filename, size } = saveFile(buffer, part.filename);
       db.prepare(`
         INSERT INTO attachments (cup_id, email_job_id, filename, original_name, mime_type, size)

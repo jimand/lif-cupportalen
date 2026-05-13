@@ -1,11 +1,35 @@
 import { Router, Request, Response } from 'express';
-import { randomUUID } from 'crypto';
+import { randomUUID, timingSafeEqual } from 'crypto';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import db from '../services/db';
 import { sendConfirmationEmail, sendUnsubscribeConfirmationEmail, sendWelcomeEmail } from '../services/gmail';
 
 const router = Router();
+
+const CSRF_COOKIE = 'csrf_token';
+
+function setCsrfToken(res: Response): string {
+  const token = randomUUID();
+  res.cookie(CSRF_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 15 * 60 * 1000,
+  });
+  return token;
+}
+
+function verifyCsrfToken(req: Request): boolean {
+  const cookie = req.cookies?.[CSRF_COOKIE];
+  const body = req.body?.csrf_token;
+  if (!cookie || !body || cookie.length !== body.length) return false;
+  try {
+    return timingSafeEqual(Buffer.from(cookie), Buffer.from(body));
+  } catch {
+    return false;
+  }
+}
 
 const subscribeLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -48,13 +72,14 @@ router.post('/subscriptions', subscribeLimiter, (req: Request, res: Response) =>
   res.json({ ok: true, pending: true });
 });
 
-const confirmPage = (token: string, frontendUrl: string) => `
+const confirmPage = (token: string, csrfToken: string, frontendUrl: string) => `
   <html><head><meta charset="utf-8"><title>Bekräfta prenumeration</title></head>
   <body style="font-family:sans-serif;padding:2rem;max-width:500px;margin:0 auto;text-align:center">
     <h2>Bekräfta din prenumeration</h2>
     <p>Klicka på knappen nedan för att bekräfta att du vill prenumerera på Landvetter IF Cupportalen.</p>
     <form method="POST" action="${frontendUrl}/api/subscriptions/confirm">
       <input type="hidden" name="token" value="${token}">
+      <input type="hidden" name="csrf_token" value="${csrfToken}">
       <button type="submit" style="background:#16a34a;color:#fff;border:none;padding:0.75rem 2rem;font-size:1rem;border-radius:6px;cursor:pointer">
         Bekräfta prenumeration
       </button>
@@ -93,7 +118,8 @@ router.get('/subscriptions/confirm', confirmLimiter, (req: Request, res: Respons
     return;
   }
 
-  res.send(confirmPage(token, frontendUrl));
+  const csrfToken = setCsrfToken(res);
+  res.send(confirmPage(token, csrfToken, frontendUrl));
 });
 
 // POST /api/subscriptions/confirm – utför den faktiska bekräftelsen
@@ -102,6 +128,16 @@ router.post('/subscriptions/confirm', confirmLimiter, (req: Request, res: Respon
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
   if (!token) { res.status(400).send('<p>Ogiltig länk</p>'); return; }
+
+  if (!verifyCsrfToken(req)) {
+    res.status(403).send(`
+      <html><body style="font-family:sans-serif;padding:2rem;max-width:500px;margin:0 auto">
+        <h2>Ogiltig förfrågan</h2>
+        <p>Säkerhetstoken saknas eller har gått ut. Gå tillbaka och försök igen via länken i mailet.</p>
+      </body></html>
+    `);
+    return;
+  }
 
   const sub = db.prepare(
     `SELECT id, email, token_expires_at FROM subscriptions WHERE token = ? AND status = 'pending'`
@@ -127,9 +163,10 @@ router.post('/subscriptions/confirm', confirmLimiter, (req: Request, res: Respon
     return;
   }
 
-  db.prepare(`UPDATE subscriptions SET status = 'confirmed', token_expires_at = NULL WHERE id = ?`).run(sub.id);
+  const unsubToken = randomUUID();
+  db.prepare(`UPDATE subscriptions SET status = 'confirmed', token = ?, token_expires_at = NULL WHERE id = ?`).run(unsubToken, sub.id);
 
-  sendWelcomeEmail(sub.email, token).catch((err) =>
+  sendWelcomeEmail(sub.email, unsubToken).catch((err) =>
     console.error(`[${new Date().toISOString()}] Välkomstmail misslyckades (${sub.email}):`, err)
   );
 
@@ -158,6 +195,7 @@ router.get('/subscriptions/unsubscribe', confirmLimiter, (req: Request, res: Res
     return;
   }
 
+  const csrfToken = setCsrfToken(res);
   res.send(`
     <html><head><meta charset="utf-8"><title>Avprenumerera</title></head>
     <body style="font-family:sans-serif;padding:2rem;max-width:500px;margin:0 auto;text-align:center">
@@ -165,6 +203,7 @@ router.get('/subscriptions/unsubscribe', confirmLimiter, (req: Request, res: Res
       <p>Vill du sluta få notiser om nya cuper?</p>
       <form method="POST" action="${frontendUrl}/api/subscriptions/unsubscribe">
         <input type="hidden" name="token" value="${token}">
+        <input type="hidden" name="csrf_token" value="${csrfToken}">
         <button type="submit" style="background:#CC0000;color:#fff;border:none;padding:0.75rem 2rem;font-size:1rem;border-radius:6px;cursor:pointer">
           Ja, avprenumerera
         </button>
@@ -177,6 +216,16 @@ router.get('/subscriptions/unsubscribe', confirmLimiter, (req: Request, res: Res
 router.post('/subscriptions/unsubscribe', confirmLimiter, (req: Request, res: Response) => {
   const token = String(req.body?.token || req.query.token || '');
   if (!token) { res.status(400).send('<p>Ogiltig länk</p>'); return; }
+
+  if (!verifyCsrfToken(req)) {
+    res.status(403).send(`
+      <html><body style="font-family:sans-serif;padding:2rem;max-width:500px;margin:0 auto">
+        <h2>Ogiltig förfrågan</h2>
+        <p>Säkerhetstoken saknas eller har gått ut. Gå tillbaka och försök igen via länken i mailet.</p>
+      </body></html>
+    `);
+    return;
+  }
 
   const sub = db.prepare(`SELECT email FROM subscriptions WHERE token = ?`).get(token) as any;
   const result = db.prepare(`DELETE FROM subscriptions WHERE token = ?`).run(token);

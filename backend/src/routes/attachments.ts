@@ -48,7 +48,8 @@ router.get('/attachments/:id/file', (req: Request, res: Response) => {
   const filePath = getFilePath(att.filename);
   if (!fs.existsSync(filePath)) { res.status(404).json({ error: 'Filen saknas på disk' }); return; }
   const inline = att.mime_type.startsWith('image/') || att.mime_type === 'application/pdf';
-  res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename="${att.original_name}"`);
+  const disposition = inline ? 'inline' : 'attachment';
+  res.setHeader('Content-Disposition', `${disposition}; filename*=UTF-8''${encodeURIComponent(att.original_name)}`);
   res.setHeader('Content-Type', att.mime_type);
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.sendFile(filePath);

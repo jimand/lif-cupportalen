@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import crypto from 'crypto';
+import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import db from '../services/db';
@@ -13,6 +13,14 @@ const submitLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'För många inskickade cuper, försök igen om en timme' },
+});
+
+const voteLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'För många röster, försök igen om en timme' },
 });
 
 const cupSchema = z.object({
@@ -35,10 +43,20 @@ function normalizeUrl(url: string | undefined): string | null {
   return `https://${trimmed}`;
 }
 
-function getVoterToken(req: Request): string {
-  const ip = req.ip || req.socket.remoteAddress || 'unknown';
-  const ua = req.headers['user-agent'] || 'unknown';
-  return crypto.createHash('sha256').update(`${ip}:${ua}`).digest('hex');
+const VOTER_COOKIE = 'voter_id';
+const VOTER_COOKIE_MAX_AGE = 365 * 24 * 60 * 60 * 1000;
+
+function getOrCreateVoterId(req: Request, res: Response): string {
+  const existing = req.cookies?.[VOTER_COOKIE];
+  if (existing && typeof existing === 'string' && existing.length === 36) return existing;
+  const id = randomUUID();
+  res.cookie(VOTER_COOKIE, id, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: VOTER_COOKIE_MAX_AGE,
+  });
+  return id;
 }
 
 // GET /api/cups – list approved cups
@@ -136,7 +154,7 @@ router.get('/:id/ical', (req: Request, res: Response) => {
   ].filter(Boolean).join('\r\n');
 
   res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="${slug}.ics"`);
+  res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(slug + '.ics')}`);
   res.send(ics);
 });
 
@@ -173,14 +191,14 @@ router.post('/', submitLimiter, (req: Request, res: Response) => {
 });
 
 // POST /api/cups/:id/vote
-router.post('/:id/vote', (req: Request, res: Response) => {
+router.post('/:id/vote', voteLimiter, (req: Request, res: Response) => {
   const cup = db.prepare(`SELECT id, thumbs_up FROM cups WHERE id = ? AND status = 'approved'`).get(req.params.id) as any;
   if (!cup) {
     res.status(404).json({ error: 'Cupen hittades inte' });
     return;
   }
 
-  const voterToken = getVoterToken(req);
+  const voterToken = getOrCreateVoterId(req, res);
 
   const existing = db.prepare(`SELECT id FROM votes WHERE cup_id = ? AND voter_token = ?`).get(cup.id, voterToken);
   if (existing) {
@@ -206,7 +224,7 @@ router.get('/vote-status/check', (req: Request, res: Response) => {
     return;
   }
 
-  const voterToken = getVoterToken(req);
+  const voterToken = getOrCreateVoterId(req, res);
   const idList = String(ids).split(',').map(Number).filter(Boolean);
 
   const result: Record<number, boolean> = {};

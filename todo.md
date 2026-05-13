@@ -12,6 +12,11 @@
 - [ ] **Sammanfoga dubbletter** – Admin kan slå ihop två cupar och behålla röster och bilagor från båda.
 - [ ] **Filtrera på anmälningsdeadline** – Lägg till `registration_deadline` i filterpanelen ("sista anmälningsdag inom X dagar").
 
+## Drift & säkerhetskopior
+
+- [ ] **Sätta upp daglig backup på VPS** – Skriptet `backup.sh` finns i repot. Steg: montera extern disk på `/mnt/backup`, installera skriptet till `/usr/local/bin/backup-cupportalen`, sätt upp cron `0 2 * * * /usr/local/bin/backup-cupportalen >> /var/log/backup-cupportalen.log 2>&1`. Se senaste chattkonversationen för fullständig guide.
+- [ ] **Byta backup-destination till NAS** – Om NAS används: montera NAS-share (SMB/NFS) på `/mnt/backup` istf. extern disk. Ändra inte i backup.sh, bara mount-punkten. Överväg kryptering av `.env`-backupen om NAS delas med andra.
+
 ## Kvalitet & drift
 
 - [ ] **Databasmigrationer** – Ersätt `try/catch ALTER TABLE` med numrerade SQL-migreringsfiler.

@@ -14,13 +14,9 @@
 
 ## Drift & säkerhetskopior
 
-- [ ] **Sätta upp daglig backup på VPS** – Skriptet `backup.sh` finns i repot och är nu rättat (det kunde tidigare inte köra: `sqlite3` saknades i containern och `PROJECT_DIR` pekade fel). Steg:
-  1. Backup-destination: `/root/backups/cupportalen` tills vidare (samma maskin). Byt till extern disk eller NAS genom att sätta `BACKUP_DIR` och `MOUNT_POINT` – ingen ändring i skriptet behövs.
-  2. Bygg om backend så imagen får `sqlite3`: `docker compose -f docker-compose.prod.yml up --build -d backend`.
-  3. `sudo cp backup.sh /usr/local/bin/backup-cupportalen && sudo chmod +x /usr/local/bin/backup-cupportalen`
-  4. Skapa `/etc/cupportalen-backup.env` (rättigheter 600). Raderna måste börja med `export` – annars ärvs de inte av skriptet.
-  5. Cron: `0 2 * * * . /etc/cupportalen-backup.env && /usr/local/bin/backup-cupportalen >> /var/log/backup-cupportalen.log 2>&1`
-  6. **Testa återställningen en gång** enligt avsnittet i README – en otestad backup har obekräftat värde.
+- [x] **Daglig backup på VPS** – Klart 2026-08-28. `backup.sh` installerad som `/usr/local/bin/backup-cupportalen`, konfiguration i `/etc/cupportalen-backup.env` (600), cron kl 02:00, destination `/root/backups/cupportalen`. Verifierat: integritetskontroll, kryptering, dekryptering och en skarp återställning till en tillfällig volym (27 cuper, `integrity_check ok`).
+  - Återställningstestet avslöjade att rutinen i README saknade ett `chown`-steg: `docker cp` lägger in filerna som root medan backend kör som `appuser`, vilket gav `SQLITE_READONLY_DIRECTORY`. Rättat.
+  - **Lösenfrasen i `/etc/cupportalen-backup.env` måste finnas sparad utanför servern.** Utan den går `.env` i backupen inte att dekryptera.
 - [ ] **Offsite-kopia** – Backupen ligger nu på `/root/backups/` på samma maskin som databasen. Det skyddar mot databaskorruption, trasiga migrationer och misstag, men inte mot hårdvarufel, brand eller stöld. Se NAS-punkten nedan.
 - [ ] **Byta backup-destination till NAS** – Om NAS används: montera NAS-share (SMB/NFS) på `/mnt/backup` istf. extern disk. Ändra inte i backup.sh, bara mount-punkten. Överväg kryptering av `.env`-backupen om NAS delas med andra.
 
@@ -45,4 +41,4 @@
 ## Större / mer ambitiöst
 
 - [ ] **Kalendervy** – Månadskalender på startsidan som komplement till listan; cupar plottas på sina datum.
-- [ ] **PWA / mobilapp** – Manifest + service worker så att appen kan sparas på hemskärmen med offlinestöd.
+- [ ] **PWA / mobilapp** – `frontend/public/site.webmanifest` och `theme-color` finns sedan etapp 4. Kvar: service worker för offlinestöd, samt PNG-ikoner i 192 och 512 px (manifestet pekar just nu bara på SVG:n).

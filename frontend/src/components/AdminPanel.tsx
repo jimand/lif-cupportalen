@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { api, type Cup, type EmailJob, type Attachment, type Stats, type Subscription } from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
 import { Check, Pencil, Trash2, Mail, Loader2, RefreshCw, Paperclip, Download, UserPlus, Send, X } from 'lucide-react';
-import { StatsTab } from '@/components/StatsTab';
+const StatsTab = lazy(() =>
+  import('@/components/StatsTab').then((m) => ({ default: m.StatsTab }))
+);
 import { formatDateRange, normalizeUrl } from '@/lib/utils';
 import { AgeSelect } from '@/components/AgeSelect';
 import { CupTypeSelect } from '@/components/CupTypeSelect';
@@ -910,7 +912,13 @@ export function AdminPanel({ onLogout }: { onLogout: () => void }) {
           <SubscribersTab />
         </TabsContent>
         <TabsContent value="stats" className="mt-4">
-          <StatsTab />
+          <Suspense fallback={
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-[#AB2328]" aria-label="Laddar statistik" />
+            </div>
+          }>
+            <StatsTab />
+          </Suspense>
         </TabsContent>
       </Tabs>
     </div>

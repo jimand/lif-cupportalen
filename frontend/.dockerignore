@@ -1,0 +1,10 @@
+# Byggkontexten är ./frontend, så Docker läser DENNA fil – inte repo-rotens
+# .dockerignore. Utan den kopierar "COPY . ." in värdens node_modules (med
+# macOS-binärer för rollup/esbuild) över det som npm ci precis installerade
+# i containern.
+node_modules
+dist
+.env
+.env.*
+*.log
+.DS_Store

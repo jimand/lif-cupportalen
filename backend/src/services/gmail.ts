@@ -135,7 +135,16 @@ export async function pollGmail(): Promise<void> {
         const headers = msgRes.data.payload?.headers || [];
         const subject = headers.find((h: any) => h.name === 'Subject')?.value || '';
         const sender = headers.find((h: any) => h.name === 'From')?.value || '';
-        const dateHeader = headers.find((h: any) => h.name === 'Date')?.value || '';
+        // Gmails Date-header ser ut som "Mon, 13 May 2025 14:02:11 +0200".
+        // Sparad ordagrant sorterar "ORDER BY received_at DESC" lexikografiskt
+        // på veckodagsnamnet, så admins e-postlista hamnade i fel ordning.
+        // Normalisera till ISO, som alla andra tidskolumner.
+        const rawDateHeader = headers.find((h: any) => h.name === 'Date')?.value || '';
+        const parsedDate = rawDateHeader ? new Date(rawDateHeader) : null;
+        const dateHeader =
+          parsedDate && !isNaN(parsedDate.getTime())
+            ? parsedDate.toISOString()
+            : new Date().toISOString();
         const rawBody = extractBody(msgRes.data.payload);
 
         const jobResult = db.prepare(`

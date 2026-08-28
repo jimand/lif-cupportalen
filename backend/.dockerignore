@@ -1,0 +1,9 @@
+# Se kommentaren i frontend/.dockerignore – byggkontexten är ./backend.
+node_modules
+dist
+data
+.env
+.env.*
+*.db
+*.log
+.DS_Store

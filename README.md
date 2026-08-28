@@ -169,11 +169,62 @@ docker compose -f docker-compose.prod.yml restart backend
 
 ## Backup
 
+Automatisk daglig backup sköts av `backup.sh`. Se kommentarshuvudet i skriptet
+för installation och crontab-rad. Skriptet kräver `PROJECT_DIR` och
+`BACKUP_PASSPHRASE` (för kryptering av `.env`) som miljövariabler, verifierar
+kopian med `PRAGMA integrity_check` och varnar om backupen krympt kraftigt
+jämfört med föregående dag.
+
+**Manuell engångsbackup:**
 ```bash
-# Skapa backup på servern
 docker compose -f docker-compose.prod.yml exec backend \
   sqlite3 /data/cups.db ".backup '/data/cups-$(date +%Y%m%d).db'"
 
-# Kopiera till lokal maskin
-scp user@VPS-IP:~/cupportalen/data/cups-$(date +%Y%m%d).db ~/Desktop/
+docker compose -f docker-compose.prod.yml cp \
+  backend:/data/cups-$(date +%Y%m%d).db ./cups-$(date +%Y%m%d).db
 ```
+
+### Återställa från backup
+
+Databasen ligger i den **namngivna Docker-volymen** `db_data`, inte i en
+bind-mount — den går alltså inte att ersätta genom att kopiera en fil i
+projektkatalogen.
+
+```bash
+cd /opt/cupportalen
+
+# 1. Packa upp backupen
+mkdir -p /tmp/restore && tar -xzf /mnt/backup/cupportalen/backup-2026-08-28.tar.gz -C /tmp/restore
+ls /tmp/restore                      # cups-DATUM.db, uploads-DATUM/, env-DATUM.gpg
+
+# 2. Stoppa backend sa att ingen skriver under tiden
+docker compose -f docker-compose.prod.yml stop backend
+
+# 3. Aterstall databasen in i volymen
+docker compose -f docker-compose.prod.yml cp \
+  /tmp/restore/cups-2026-08-28.db backend:/data/cups.db
+
+# 4. Aterstall bilagor (om de finns i backupen)
+docker compose -f docker-compose.prod.yml cp \
+  /tmp/restore/uploads-2026-08-28/. backend:/data/uploads/
+
+# 5. Aterstall .env vid behov (dekryptera forst)
+gpg --batch --decrypt --passphrase "$BACKUP_PASSPHRASE" \
+  --output .env /tmp/restore/env-2026-08-28.gpg
+chmod 600 .env
+
+# 6. Starta och verifiera
+docker compose -f docker-compose.prod.yml start backend
+docker compose -f docker-compose.prod.yml exec backend \
+  sqlite3 /data/cups.db "PRAGMA integrity_check; SELECT COUNT(*) FROM cups;"
+docker compose -f docker-compose.prod.yml logs --tail=30 backend
+
+# 7. Stada
+rm -rf /tmp/restore
+```
+
+> Steg 3 skriver över den körande databasen. Ta en färsk kopia först om det
+> finns data som tillkommit efter backupen.
+>
+> **Testa återställningen en gång innan du behöver den.** En backup som aldrig
+> har återställts har obekräftat värde.

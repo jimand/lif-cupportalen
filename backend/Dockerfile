@@ -9,6 +9,11 @@ RUN npm run build
 
 FROM node:20-alpine
 
+# sqlite-CLI:t behövs av backup.sh (".backup" ger en konsistent kopia under
+# drift) och av felsökningskommandona i README. better-sqlite3 är en
+# Node-bindning och ger inget CLI.
+RUN apk add --no-cache sqlite
+
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev

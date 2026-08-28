@@ -124,7 +124,7 @@ Se **[deploy.md](deploy.md)** för komplett guide med Docker Compose, Nginx Prox
 
 **Snabbuppdatering på servern:**
 ```bash
-cd /opt/cupportalen        # se not om sökväg nedan
+cd /root/cupportalen
 git pull
 docker compose -f docker-compose.prod.yml up --build -d
 docker network connect cupportalen_internal nginx-proxy-manager-app-1
@@ -191,7 +191,7 @@ bind-mount — den går alltså inte att ersätta genom att kopiera en fil i
 projektkatalogen.
 
 ```bash
-cd /opt/cupportalen
+cd /root/cupportalen
 
 # 1. Packa upp backupen
 mkdir -p /tmp/restore && tar -xzf /mnt/backup/cupportalen/backup-2026-08-28.tar.gz -C /tmp/restore

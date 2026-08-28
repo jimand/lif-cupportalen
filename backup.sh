@@ -12,7 +12,7 @@
 #   sudo chmod +x /usr/local/bin/backup-cupportalen
 #
 #   Skapa /etc/cupportalen-backup.env med rättigheter 600:
-#     PROJECT_DIR=/opt/cupportalen
+#     PROJECT_DIR=/root/cupportalen
 #     BACKUP_PASSPHRASE=<lang slumpmassig strang>
 #
 #   Crontab:
@@ -28,7 +28,7 @@ umask 077   # allt som skapas här är läsbart endast för ägaren
 # "$HOME/cupportalen", vilket blir /root/cupportalen under cron och därmed
 # fel katalog utan att det märks förrän .env-kopieringen failar.
 if [ -z "${PROJECT_DIR:-}" ]; then
-  echo "FEL: PROJECT_DIR är inte satt. Sätt den till projektets katalog, t.ex. /opt/cupportalen." >&2
+  echo "FEL: PROJECT_DIR är inte satt. Sätt den till projektets katalog, t.ex. /root/cupportalen." >&2
   exit 1
 fi
 

@@ -21,7 +21,6 @@
   4. Skapa `/etc/cupportalen-backup.env` (rättigheter 600) med `PROJECT_DIR` och `BACKUP_PASSPHRASE`.
   5. Cron: `0 2 * * * . /etc/cupportalen-backup.env && /usr/local/bin/backup-cupportalen >> /var/log/backup-cupportalen.log 2>&1`
   6. **Testa återställningen en gång** enligt avsnittet i README – en otestad backup har obekräftat värde.
-- [ ] **Bekräfta projektets sökväg på servern** – `README.md` säger numera `/opt/cupportalen`, men `backup.sh` gissade tidigare på `$HOME/cupportalen`. Verifiera vilken som stämmer och rätta kvarvarande dokumentation.
 - [ ] **Offsite-kopia** – `/mnt/backup` är en lokalt monterad disk på samma maskin. Brand, stöld eller ransomware tar både original och backup. Se NAS-punkten nedan.
 - [ ] **Byta backup-destination till NAS** – Om NAS används: montera NAS-share (SMB/NFS) på `/mnt/backup` istf. extern disk. Ändra inte i backup.sh, bara mount-punkten. Överväg kryptering av `.env`-backupen om NAS delas med andra.
 

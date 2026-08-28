@@ -10,20 +10,23 @@
 #   sudo cp backup.sh /usr/local/bin/backup-cupportalen
 #   sudo chmod +x /usr/local/bin/backup-cupportalen
 #
-#   Skapa /etc/cupportalen-backup.env med rättigheter 600:
+#   Skapa /etc/cupportalen-backup.env med rättigheter 600.
+#   OBS: raderna MÅSTE ha "export" – skriptet körs som en barnprocess och
+#   ärver bara exporterade variabler. Utan export blir de skalvariabler som
+#   skriptet aldrig ser, och det avbryter med "PROJECT_DIR är inte satt".
 #
 #   Lokal backup (samma maskin – skyddar mot korruption och misstag,
 #   inte mot att maskinen försvinner):
-#     PROJECT_DIR=/root/cupportalen
-#     BACKUP_DIR=/root/backups/cupportalen
-#     MOUNT_POINT=
-#     BACKUP_PASSPHRASE=<lang slumpmassig strang>
+#     export PROJECT_DIR=/root/cupportalen
+#     export BACKUP_DIR=/root/backups/cupportalen
+#     export MOUNT_POINT=
+#     export BACKUP_PASSPHRASE=<lang slumpmassig strang>
 #
 #   Extern disk eller NAS (rekommenderas när den finns på plats):
-#     PROJECT_DIR=/root/cupportalen
-#     BACKUP_DIR=/mnt/backup/cupportalen
-#     MOUNT_POINT=/mnt/backup
-#     BACKUP_PASSPHRASE=<lang slumpmassig strang>
+#     export PROJECT_DIR=/root/cupportalen
+#     export BACKUP_DIR=/mnt/backup/cupportalen
+#     export MOUNT_POINT=/mnt/backup
+#     export BACKUP_PASSPHRASE=<lang slumpmassig strang>
 #
 #   Crontab:
 #     0 2 * * * . /etc/cupportalen-backup.env && /usr/local/bin/backup-cupportalen >> /var/log/backup-cupportalen.log 2>&1
@@ -39,6 +42,8 @@ umask 077   # allt som skapas här är läsbart endast för ägaren
 # fel katalog utan att det märks förrän .env-kopieringen failar.
 if [ -z "${PROJECT_DIR:-}" ]; then
   echo "FEL: PROJECT_DIR är inte satt. Sätt den till projektets katalog, t.ex. /root/cupportalen." >&2
+  echo "     Tips: raderna i /etc/cupportalen-backup.env måste börja med 'export' för att" >&2
+  echo "     ärvas hit. Kontrollera med: cat /etc/cupportalen-backup.env" >&2
   exit 1
 fi
 

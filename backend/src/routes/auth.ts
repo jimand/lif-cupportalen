@@ -60,7 +60,12 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
 });
 
 router.post('/logout', (_req: Request, res: Response) => {
-  res.clearCookie('admin_token');
+  res.clearCookie('admin_token', {
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+  });
   res.json({ ok: true });
 });
 
@@ -71,7 +76,7 @@ router.get('/me', (req: Request, res: Response) => {
     return;
   }
   try {
-    jwt.verify(token, process.env.JWT_SECRET!);
+    jwt.verify(token, process.env.JWT_SECRET!, { algorithms: ['HS256'] });
     res.json({ admin: true });
   } catch {
     res.json({ admin: false });

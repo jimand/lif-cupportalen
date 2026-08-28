@@ -129,10 +129,21 @@ router.get('/:id/ical', (req: Request, res: Response) => {
   const dtend = nextDay(cup.end_date || cup.start_date);
   const dtstamp = new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';
   const uid = `cup-${cup.id}@cup.landvetterif.se`;
-  const summary = cup.name.replace(/[\\;,]/g, '\\$&');
-  const location = cup.location.replace(/[\\;,]/g, '\\$&');
-  const description = (cup.description || '').replace(/[\\;,]/g, '\\$&').replace(/\n/g, '\\n');
-  const url = cup.url || '';
+  // ICS-fält får inte innehålla råa radbrytningar – en nyrad i t.ex. ett
+  // cupnamn kan annars injicera extra properties eller hela events i filen.
+  // Ordningen är viktig: backslash måste escapas först, annars escapas den
+  // backslash som nyrads-ersättningen själv lägger till.
+  function icsEscape(v: string): string {
+    return String(v ?? '')
+      .replace(/\\/g, '\\\\')
+      .replace(/([;,])/g, '\\$1')
+      .replace(/\r\n|\r|\n/g, '\\n');
+  }
+
+  const summary = icsEscape(cup.name);
+  const location = icsEscape(cup.location);
+  const description = icsEscape(cup.description || '');
+  const url = String(cup.url || '').replace(/[\r\n]/g, '');
   const slug = cup.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
 
   const ics = [

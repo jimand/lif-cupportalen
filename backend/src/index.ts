@@ -66,12 +66,29 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.error(err);
-  } else {
-    console.error(`[${new Date().toISOString()}] Internt fel: ${err?.message}`);
+  // Logga alltid hela stacken serverside – utan den går ett TypeError inte
+  // att lokalisera i produktion. Klienten får fortsatt bara det generiska
+  // meddelandet nedan.
+  console.error(`[${new Date().toISOString()}] Internt fel:`, err);
+
+  // Trasig JSON från klienten är ett klientfel, inte ett serverfel.
+  if (err instanceof SyntaxError && 'body' in err) {
+    res.status(400).json({ error: 'Ogiltig JSON i förfrågan' });
+    return;
   }
+
   res.status(500).json({ error: 'Ett internt serverfel uppstod' });
+});
+
+// Under Node 20 dödar en ohanterad promise-rejection processen. Logga den
+// istället – restart: unless-stopped startar annars om utan att någon får
+// veta varför, och vid ett bestående fel blir det en crash-loop.
+process.on('unhandledRejection', (reason) => {
+  console.error(`[${new Date().toISOString()}] Ohanterad promise-rejection:`, reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error(`[${new Date().toISOString()}] Ohanterat undantag:`, err);
 });
 
 app.listen(PORT, '0.0.0.0', () => {

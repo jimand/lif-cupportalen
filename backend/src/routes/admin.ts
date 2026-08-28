@@ -65,7 +65,12 @@ router.get('/stats', (_req: Request, res: Response) => {
 router.get('/cups.csv', bulkDataLimiter, (_req: Request, res: Response) => {
   const cups = db.prepare(`SELECT * FROM cups ORDER BY created_at DESC`).all() as any[];
   function esc(v: any): string {
-    return `"${String(v ?? '').replace(/"/g, '""')}"`;
+    let s = String(v ?? '');
+    // Formelinjektion: cupnamn och ort kommer från det publika formuläret.
+    // Ett värde som börjar med = + - @ (eller tab/CR) tolkas av Excel och
+    // Google Sheets som en formel och exekveras när admin öppnar filen.
+    if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+    return `"${s.replace(/"/g, '""')}"`;
   }
   const header = ['ID', 'Namn', 'Ort', 'Startdatum', 'Slutdatum', 'Åldrar', 'Spelformat', 'Status', 'Röster', 'Källa', 'Skapad'];
   const rows = cups.map((c) => [

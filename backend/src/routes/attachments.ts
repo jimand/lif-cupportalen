@@ -21,8 +21,21 @@ const upload = multer({
   fileFilter: (_req, file, cb) => cb(null, ALLOWED_TYPES.includes(file.mimetype)),
 });
 
-// GET /api/cups/:cupId/attachments – public
+// GET /api/cups/:cupId/attachments – public for approved cups only
 router.get('/cups/:cupId/attachments', (req: Request, res: Response) => {
+  // Utan status-kontroll kan filnamn på bilagor till ännu ej godkända (eller
+  // avslagna) cuper räknas upp publikt. Filnedladdningen nedan kontrollerar
+  // redan detta; listningen gjorde det inte.
+  const cup = db.prepare(`SELECT status FROM cups WHERE id = ?`).get(req.params.cupId) as any;
+  if (!cup) { res.status(404).json({ error: 'Cupen hittades inte' }); return; }
+
+  if (cup.status !== 'approved') {
+    const token = req.cookies?.admin_token;
+    let isAdmin = false;
+    try { if (token) { jwt.verify(token, process.env.JWT_SECRET!, { algorithms: ['HS256'] }); isAdmin = true; } } catch {}
+    if (!isAdmin) { res.status(403).json({ error: 'Åtkomst nekad' }); return; }
+  }
+
   const attachments = db.prepare(`
     SELECT id, original_name, mime_type, size, created_at
     FROM attachments WHERE cup_id = ? ORDER BY created_at ASC
@@ -40,7 +53,7 @@ router.get('/attachments/:id/file', (req: Request, res: Response) => {
     if (!cup || cup.status !== 'approved') {
       const token = req.cookies?.admin_token;
       let isAdmin = false;
-      try { if (token) { jwt.verify(token, process.env.JWT_SECRET!); isAdmin = true; } } catch {}
+      try { if (token) { jwt.verify(token, process.env.JWT_SECRET!, { algorithms: ['HS256'] }); isAdmin = true; } } catch {}
       if (!isAdmin) { res.status(403).json({ error: 'Åtkomst nekad' }); return; }
     }
   }

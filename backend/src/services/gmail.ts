@@ -280,7 +280,7 @@ export async function sendConfirmationEmail(email: string, token: string): Promi
     '',
     confirmUrl,
     '',
-    `Länken är giltig tills du använder den. Om du inte begärde denna prenumeration kan du ignorera mailet.`,
+    `Länken är giltig i 48 timmar. Om du inte begärde denna prenumeration kan du ignorera mailet.`,
   ].join('\r\n');
   const bodyEncoded = Buffer.from(bodyText, 'utf-8').toString('base64');
 
@@ -446,11 +446,17 @@ export function startGmailPoller(): void {
   });
   // Daily cleanup: remove pending subscriptions whose confirmation link has expired
   cron.schedule('0 3 * * *', () => {
-    const result = db.prepare(
-      `DELETE FROM subscriptions WHERE status = 'pending' AND token_expires_at < datetime('now')`
-    ).run();
-    if (result.changes > 0) {
-      console.log(`[${new Date().toISOString()}] Städning: Raderade ${result.changes} utgångna väntande prenumerationer`);
+    // better-sqlite3 är synkront – ett kast här (låst eller korrupt databas)
+    // blir en uncaughtException och tar ner processen kl 03:00.
+    try {
+      const result = db.prepare(
+        `DELETE FROM subscriptions WHERE status = 'pending' AND token_expires_at < datetime('now')`
+      ).run();
+      if (result.changes > 0) {
+        console.log(`[${new Date().toISOString()}] Städning: Raderade ${result.changes} utgångna väntande prenumerationer`);
+      }
+    } catch (err) {
+      console.error(`[${new Date().toISOString()}] Städning misslyckades:`, err);
     }
   });
   console.log(`[${new Date().toISOString()}] Gmail: Poller startad (var 5:e minut), veckodigest varje måndag 08:00`);

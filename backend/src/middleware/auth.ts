@@ -14,7 +14,7 @@ export function requireAdmin(req: AdminRequest, res: Response, next: NextFunctio
   }
 
   try {
-    jwt.verify(token, process.env.JWT_SECRET!);
+    jwt.verify(token, process.env.JWT_SECRET!, { algorithms: ['HS256'] });
     req.isAdmin = true;
     next();
   } catch {

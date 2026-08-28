@@ -17,6 +17,19 @@ if (process.env.GMAIL_REFRESH_TOKEN) {
 const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
 /**
+ * Sätts när Gmail svarat att autentiseringen är ogiltig (typiskt återkallad
+ * eller utgången refresh token). Utan detta upprepas samma stacktrace var
+ * femte minut i evighet, vilket dränker loggen och gör att ingen ser den.
+ */
+let authFailureLogged = false;
+
+function isAuthError(err: any): boolean {
+  const code = err?.code ?? err?.response?.status;
+  const message = String(err?.message || '') + String(err?.response?.data?.error || '');
+  return code === 401 || code === 403 || /invalid_grant|invalid_credentials|unauthorized/i.test(message);
+}
+
+/**
  * Kontrollerar att Gmail är konfigurerat innan ett utskick försöks.
  * Loggar när ett mail hoppas över – tyst return gör att prenumeranten får
  * "kolla din inkorg" utan att något mail skickas och utan spår i loggen.
@@ -116,6 +129,11 @@ export async function pollGmail(): Promise<void> {
       maxResults: 20,
     });
 
+    if (authFailureLogged) {
+      authFailureLogged = false;
+      console.log(`[${new Date().toISOString()}] Gmail: Anslutningen fungerar igen.`);
+    }
+
     const messages = listRes.data.messages || [];
     console.log(`[${new Date().toISOString()}] Gmail: Hittade ${messages.length} olästa meddelanden`);
 
@@ -196,7 +214,20 @@ export async function pollGmail(): Promise<void> {
       }
     }
   } catch (err) {
-    console.error(`[${new Date().toISOString()}] Gmail: Polling misslyckades:`, err);
+    if (isAuthError(err)) {
+      if (!authFailureLogged) {
+        authFailureLogged = true;
+        console.error(
+          `[${new Date().toISOString()}] Gmail: AUTENTISERING MISSLYCKADES – refresh token är sannolikt ` +
+          'återkallad eller utgången. All polling OCH all utgående e-post ligger nere tills den förnyas ' +
+          '(kör "npm run gmail-auth" och uppdatera GMAIL_REFRESH_TOKEN). ' +
+          'Detta meddelande upprepas inte förrän anslutningen fungerat igen.',
+          err
+        );
+      }
+    } else {
+      console.error(`[${new Date().toISOString()}] Gmail: Polling misslyckades:`, err);
+    }
   }
 }
 
@@ -446,13 +477,17 @@ export async function sendWeeklyDigest(): Promise<void> {
 }
 
 export function startGmailPoller(): void {
+  // Containern kör UTC. Utan timezone gick veckodigesten ut 09:00 eller
+  // 10:00 svensk tid beroende på sommartid, inte 08:00 som avsett.
+  const cronOptions = { timezone: 'Europe/Stockholm' };
+
   cron.schedule('*/5 * * * *', () => {
     pollGmail().catch(console.error);
-  });
+  }, cronOptions);
   // Weekly digest: Mondays at 08:00
   cron.schedule('0 8 * * 1', () => {
     sendWeeklyDigest().catch(console.error);
-  });
+  }, cronOptions);
   // Daily cleanup: remove pending subscriptions whose confirmation link has expired
   cron.schedule('0 3 * * *', () => {
     // better-sqlite3 är synkront – ett kast här (låst eller korrupt databas)
@@ -467,6 +502,6 @@ export function startGmailPoller(): void {
     } catch (err) {
       console.error(`[${new Date().toISOString()}] Städning misslyckades:`, err);
     }
-  });
-  console.log(`[${new Date().toISOString()}] Gmail: Poller startad (var 5:e minut), veckodigest varje måndag 08:00`);
+  }, cronOptions);
+  console.log(`[${new Date().toISOString()}] Gmail: Poller startad (var 5:e minut), veckodigest måndagar 08:00 svensk tid`);
 }

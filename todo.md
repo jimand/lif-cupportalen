@@ -27,7 +27,7 @@
 
 ## Kvalitet & drift
 
-- [ ] **Databasmigrationer** – Ersätt `try/catch ALTER TABLE` med numrerade SQL-migreringsfiler.
+- [x] **Databasmigrationer** – Klart. `backend/src/services/migrations.ts` med `schema_migrations`-tabell, transaktion per migration och stopp vid fel.
 - [ ] **Paginering i admin** – Cupar, prenumeranter och e-postjobb laddas alla på en gång; lägg till paginering eller "load more".
 - [ ] **Admin-logg** – Logga godkännanden och avslag (vem, vad, när) och visa historiken i adminpanelen.
 

@@ -3,7 +3,6 @@
 # Säkerhetskopierar: SQLite-databas, uppladdade filer och .env
 #
 # Förutsättningar:
-#   - Extern disk (eller NAS-share) monterad på /mnt/backup
 #   - Körs som en användare med tillgång till docker
 #   - gnupg installerat (för kryptering av .env)
 #
@@ -12,7 +11,18 @@
 #   sudo chmod +x /usr/local/bin/backup-cupportalen
 #
 #   Skapa /etc/cupportalen-backup.env med rättigheter 600:
+#
+#   Lokal backup (samma maskin – skyddar mot korruption och misstag,
+#   inte mot att maskinen försvinner):
 #     PROJECT_DIR=/root/cupportalen
+#     BACKUP_DIR=/root/backups/cupportalen
+#     MOUNT_POINT=
+#     BACKUP_PASSPHRASE=<lang slumpmassig strang>
+#
+#   Extern disk eller NAS (rekommenderas när den finns på plats):
+#     PROJECT_DIR=/root/cupportalen
+#     BACKUP_DIR=/mnt/backup/cupportalen
+#     MOUNT_POINT=/mnt/backup
 #     BACKUP_PASSPHRASE=<lang slumpmassig strang>
 #
 #   Crontab:
@@ -33,7 +43,8 @@ if [ -z "${PROJECT_DIR:-}" ]; then
 fi
 
 BACKUP_DIR="${BACKUP_DIR:-/mnt/backup/cupportalen}"
-MOUNT_POINT="${MOUNT_POINT:-/mnt/backup}"
+# ":-" skulle ersätta en explicit tom sträng med defaulten, därför "-".
+MOUNT_POINT="${MOUNT_POINT-/mnt/backup}"
 KEEP_DAYS="${KEEP_DAYS:-30}"
 CONTAINER="${CONTAINER:-cupportalen-backend-1}"
 DATE=$(date +%Y-%m-%d)
@@ -45,7 +56,15 @@ fail() { echo "[$(date -Iseconds)] FEL: $*" >&2; exit 1; }
 [ -d "$PROJECT_DIR" ] || fail "PROJECT_DIR '$PROJECT_DIR' finns inte."
 [ -f "$PROJECT_DIR/.env" ] || fail "Hittar ingen .env i '$PROJECT_DIR'."
 
-mountpoint -q "$MOUNT_POINT" || fail "$MOUNT_POINT är inte monterat. Avbryter."
+# MOUNT_POINT tomt = medvetet val att lägga backupen på samma disk som datan.
+# Skyddar mot databaskorruption, trasiga migrationer och misstag – men inte
+# mot att maskinen försvinner. Sätt MOUNT_POINT när en extern disk eller NAS
+# finns på plats.
+if [ -n "$MOUNT_POINT" ]; then
+  mountpoint -q "$MOUNT_POINT" || fail "$MOUNT_POINT är inte monterat. Avbryter."
+else
+  log "VARNING: ingen MOUNT_POINT satt – backupen hamnar på samma maskin som databasen och skyddar inte mot hårdvarufel, brand eller stöld."
+fi
 
 docker inspect "$CONTAINER" >/dev/null 2>&1 \
   || fail "Containern '$CONTAINER' finns inte. Kontrollera namnet med 'docker ps'."

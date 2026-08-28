@@ -124,13 +124,27 @@ Se **[deploy.md](deploy.md)** för komplett guide med Docker Compose, Nginx Prox
 
 **Snabbuppdatering på servern:**
 ```bash
-cd ~/cupportalen
+cd /opt/cupportalen        # se not om sökväg nedan
 git pull
 docker compose -f docker-compose.prod.yml up --build -d
-docker network connect cupportalen_default nginx-proxy-manager-app-1
+docker network connect cupportalen_internal nginx-proxy-manager-app-1
 ```
 
 > `docker network connect` måste köras efter varje rebuild – `docker compose up --build` återskapar nätverket och kopplar bort Nginx Proxy Manager.
+>
+> Nätverket heter `cupportalen_internal` (compose-projektnamn + nätverksnamnet
+> `internal` från `docker-compose.prod.yml`). Verifiera med `docker network ls`.
+
+**Gör kopplingen permanent (rekommenderas):** deklarera Nginx Proxy Managers
+nätverk som externt så att `frontend` ansluts automatiskt vid varje rebuild och
+det manuella steget ovan kan tas bort. Ta först reda på nätverkets namn:
+
+```bash
+docker inspect nginx-proxy-manager-app-1 --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{"\n"}}{{end}}'
+```
+
+Lägg sedan till det i `docker-compose.prod.yml` under `networks:` med
+`external: true`, och ta upp det på `frontend`-tjänsten.
 
 ---
 

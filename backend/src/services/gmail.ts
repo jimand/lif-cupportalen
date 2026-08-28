@@ -16,6 +16,21 @@ if (process.env.GMAIL_REFRESH_TOKEN) {
 
 const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
+/**
+ * Kontrollerar att Gmail är konfigurerat innan ett utskick försöks.
+ * Loggar när ett mail hoppas över – tyst return gör att prenumeranten får
+ * "kolla din inkorg" utan att något mail skickas och utan spår i loggen.
+ */
+function gmailConfigured(context: string): boolean {
+  if (!process.env.GMAIL_REFRESH_TOKEN) {
+    console.error(
+      `[${new Date().toISOString()}] Gmail: hoppar över ${context} – GMAIL_REFRESH_TOKEN saknas`
+    );
+    return false;
+  }
+  return true;
+}
+
 function decodeBase64(data: string): string {
   return Buffer.from(data.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8');
 }
@@ -178,7 +193,8 @@ export async function pollGmail(): Promise<void> {
 
 export async function sendCupNotification(cupName: string): Promise<void> {
   const to = process.env.ADMIN_NOTIFY_EMAIL;
-  if (!to || !process.env.GMAIL_REFRESH_TOKEN) return;
+  if (!to) return;
+  if (!gmailConfigured('sendCupNotification')) return;
 
   const from = process.env.GMAIL_USER || 'me';
   const adminUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin`;
@@ -214,7 +230,7 @@ export async function sendCupNotification(cupName: string): Promise<void> {
 export async function sendSubscriberNotification(
   cupName: string, cupId: number, subscriberEmail: string, unsubToken: string,
 ): Promise<void> {
-  if (!process.env.GMAIL_REFRESH_TOKEN) return;
+  if (!gmailConfigured('sendSubscriberNotification')) return;
 
   const from = process.env.GMAIL_USER || 'me';
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -250,7 +266,7 @@ export async function sendSubscriberNotification(
 }
 
 export async function sendConfirmationEmail(email: string, token: string): Promise<void> {
-  if (!process.env.GMAIL_REFRESH_TOKEN) return;
+  if (!gmailConfigured('sendConfirmationEmail')) return;
 
   const from = process.env.GMAIL_USER || 'me';
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -284,7 +300,7 @@ export async function sendConfirmationEmail(email: string, token: string): Promi
 }
 
 export async function sendWelcomeEmail(email: string, unsubToken: string): Promise<void> {
-  if (!process.env.GMAIL_REFRESH_TOKEN) return;
+  if (!gmailConfigured('sendWelcomeEmail')) return;
 
   const from = process.env.GMAIL_USER || 'me';
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -316,7 +332,7 @@ export async function sendWelcomeEmail(email: string, unsubToken: string): Promi
 }
 
 export async function sendUnsubscribeConfirmationEmail(email: string): Promise<void> {
-  if (!process.env.GMAIL_REFRESH_TOKEN) return;
+  if (!gmailConfigured('sendUnsubscribeConfirmationEmail')) return;
 
   const from = process.env.GMAIL_USER || 'me';
 
@@ -345,7 +361,7 @@ export async function sendUnsubscribeConfirmationEmail(email: string): Promise<v
 }
 
 export async function sendWeeklyDigest(): Promise<void> {
-  if (!process.env.GMAIL_REFRESH_TOKEN) return;
+  if (!gmailConfigured('sendWeeklyDigest')) return;
 
   const cups = db.prepare(`
     SELECT id, name, age_classes FROM cups

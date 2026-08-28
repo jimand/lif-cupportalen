@@ -64,6 +64,7 @@ export function AddCupForm() {
         cup_type: form.cup_type || undefined,
         url: normalizeUrl(form.url) || undefined,
         description: form.description.trim() || undefined,
+        registration_deadline: form.registration_deadline || undefined,
       });
       toast({ title: 'Tack!', description: 'Cupen har skickats in och väntar på godkännande.' });
       setForm(EMPTY);

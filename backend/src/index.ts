@@ -13,8 +13,32 @@ import { startGmailPoller } from './services/gmail';
 
 if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET saknas i miljövariabler');
 if (!process.env.ADMIN_PASSWORD) throw new Error('ADMIN_PASSWORD saknas i miljövariabler');
+if (!process.env.ADMIN_PASSWORD.startsWith('$2')) {
+  throw new Error(
+    'ADMIN_PASSWORD måste vara en bcrypt-hash (börjar med $2). ' +
+    'Generera med: node -e "const b=require(\'bcryptjs\'); b.hash(\'DITT_LÖSENORD\', 10).then(console.log)"'
+  );
+}
 if (!process.env.FRONTEND_URL && process.env.NODE_ENV === 'production') {
   throw new Error('FRONTEND_URL saknas i miljövariabler (krävs i produktion)');
+}
+
+// Gmail är valfritt – appen fungerar utan, men då skickas inga mail och
+// ingen polling sker. Varna tydligt vid start så det inte upptäcks först
+// när en prenumerant undrar var bekräftelsemailet tog vägen.
+const missingGmail = [
+  'GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN', 'GMAIL_USER',
+].filter((k) => !process.env[k]);
+if (missingGmail.length > 0) {
+  console.warn(
+    `[${new Date().toISOString()}] VARNING: Gmail ej konfigurerat (saknar ${missingGmail.join(', ')}). ` +
+    'Ingen e-post skickas och ingen polling sker.'
+  );
+}
+if (!process.env.ADMIN_NOTIFY_EMAIL) {
+  console.warn(
+    `[${new Date().toISOString()}] VARNING: ADMIN_NOTIFY_EMAIL saknas – inga notiser om nya cuper skickas.`
+  );
 }
 
 const app = express();

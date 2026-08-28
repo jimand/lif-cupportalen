@@ -62,7 +62,7 @@ export default function CupDetail() {
     <div className="min-h-screen bg-white">
       <header className="border-b bg-white sticky top-0 z-10 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
-          <img src="/logo.png" alt="Landvetter IF" className="h-10 w-auto" />
+          <img src="/logo.svg" alt="Landvetter IF" width={35} height={40} className="h-10 w-auto" />
           <div>
             <h1 className="font-bold text-lg leading-tight">Landvetter IF</h1>
             <p className="text-xs text-muted-foreground leading-tight">Cupportalen</p>
@@ -97,8 +97,8 @@ export default function CupDetail() {
                 disabled={voting}
                 className={`flex flex-col items-center gap-0.5 p-3 rounded-xl transition-colors shrink-0 ${
                   voted
-                    ? 'text-[#CC0000] bg-red-50 hover:bg-red-100'
-                    : 'text-muted-foreground hover:text-[#CC0000] hover:bg-red-50'
+                    ? 'text-[#AB2328] bg-red-50 hover:bg-red-100'
+                    : 'text-muted-foreground hover:text-[#AB2328] hover:bg-red-50'
                 }`}
                 title={voted ? 'Klicka för att ångra din röst' : 'Tumme upp'}
               >
@@ -140,14 +140,14 @@ export default function CupDetail() {
                   href={cup.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm text-[#CC0000] hover:text-[#AA0000] font-medium"
+                  className="inline-flex items-center gap-1.5 text-sm text-[#AB2328] hover:text-[#881C1F] font-medium"
                 >
                   <ExternalLink className="h-4 w-4" /> Mer information
                 </a>
               )}
               <a
                 href={api.cups.icalUrl(cup.id)}
-                className="inline-flex items-center gap-1.5 text-sm text-[#CC0000] hover:text-[#AA0000] font-medium"
+                className="inline-flex items-center gap-1.5 text-sm text-[#AB2328] hover:text-[#881C1F] font-medium"
               >
                 <CalendarPlus className="h-4 w-4" /> Lägg i kalender
               </a>
@@ -178,7 +178,7 @@ export default function CupDetail() {
                     href={`/api/attachments/${att.id}/file`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-[#CC0000] hover:text-[#AA0000]"
+                    className="flex items-center gap-2 text-sm text-[#AB2328] hover:text-[#881C1F]"
                   >
                     <Paperclip className="h-4 w-4 shrink-0" />
                     <span>{att.original_name}</span>

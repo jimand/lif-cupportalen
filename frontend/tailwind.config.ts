@@ -54,9 +54,9 @@ const config: Config = {
           foreground: 'hsl(var(--card-foreground))',
         },
         lif: {
-          red: '#CC0000',
-          'red-dark': '#AA0000',
-          'red-light': '#FF1111',
+          red: '#AB2328',
+          'red-dark': '#881C1F',
+          'red-light': '#D42B31',
         },
       },
       borderRadius: {

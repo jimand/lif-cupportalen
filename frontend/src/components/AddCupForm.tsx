@@ -78,7 +78,7 @@ export function AddCupForm() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-[#CC0000] hover:bg-[#AA0000] text-white gap-2">
+        <Button className="bg-[#AB2328] hover:bg-[#881C1F] text-white gap-2">
           <Plus className="h-4 w-4" />
           Föreslå en cup
         </Button>
@@ -148,7 +148,7 @@ export function AddCupForm() {
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Avbryt</Button>
-            <Button type="submit" disabled={submitting} className="bg-[#CC0000] hover:bg-[#AA0000]">
+            <Button type="submit" disabled={submitting} className="bg-[#AB2328] hover:bg-[#881C1F]">
               {submitting ? 'Skickar...' : 'Skicka in'}
             </Button>
           </div>

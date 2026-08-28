@@ -6,7 +6,7 @@ import {
 import { Loader2, ExternalLink } from 'lucide-react';
 import { api, type DetailedStats } from '@/lib/api';
 
-const COLORS = ['#CC0000', '#e05050', '#f08080', '#fbb', '#fdd', '#b22', '#880000', '#550000', '#c44', '#d66'];
+const COLORS = ['#AB2328', '#e05050', '#f08080', '#fbb', '#fdd', '#b22', '#880000', '#550000', '#c44', '#d66'];
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
@@ -41,7 +41,7 @@ export function StatsTab() {
   if (!stats) {
     return (
       <div className="flex justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-[#CC0000]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#AB2328]" />
       </div>
     );
   }
@@ -81,7 +81,7 @@ export function StatsTab() {
               <XAxis dataKey="month" tick={{ fontSize: 11 }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v) => [`${v} cuper`, 'Tillagda']} />
-              <Bar dataKey="count" fill="#CC0000" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="count" fill="#AB2328" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </>
@@ -127,7 +127,7 @@ export function StatsTab() {
               <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
               <YAxis type="category" dataKey="name" width={160} tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v) => [`${v} röster`, 'Röster']} />
-              <Bar dataKey="votes" fill="#CC0000" radius={[0, 3, 3, 0]} />
+              <Bar dataKey="votes" fill="#AB2328" radius={[0, 3, 3, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </>
@@ -143,7 +143,7 @@ export function StatsTab() {
               <XAxis dataKey="month" tick={{ fontSize: 11 }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v) => [`${v} prenumeranter`, 'Nya']} />
-              <Line type="monotone" dataKey="count" stroke="#CC0000" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="count" stroke="#AB2328" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         </>
@@ -191,7 +191,7 @@ VITE_UMAMI_SHARE_URL=https://umami.din-server.se/share/<share-id>`}
             href="https://umami.is/docs/getting-started"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-[#CC0000] hover:text-[#AA0000]"
+            className="inline-flex items-center gap-1 text-[#AB2328] hover:text-[#881C1F]"
           >
             Umami – kom igång <ExternalLink className="h-3.5 w-3.5" />
           </a>

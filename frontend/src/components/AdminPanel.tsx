@@ -61,7 +61,7 @@ function AttachmentManager({ cupId }: { cupId: number }) {
                 href={`/api/attachments/${att.id}/file`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 truncate text-[#CC0000] hover:text-[#AA0000]"
+                className="flex items-center gap-1.5 truncate text-[#AB2328] hover:text-[#881C1F]"
               >
                 <Paperclip className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">{att.original_name}</span>
@@ -197,7 +197,7 @@ function CupForm({
       </div>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={onCancel}>Avbryt</Button>
-        <Button type="submit" disabled={saving} className="bg-[#CC0000] hover:bg-[#AA0000]">
+        <Button type="submit" disabled={saving} className="bg-[#AB2328] hover:bg-[#881C1F]">
           {saving ? 'Sparar...' : 'Spara'}
         </Button>
       </div>
@@ -441,7 +441,7 @@ function PendingTab({ cups, onRefresh }: { cups: Cup[]; onRefresh: () => void })
                 <p className="text-xs text-muted-foreground mt-1">Källa: {cup.source_email}</p>
               )}
             </div>
-            <Button size="sm" onClick={() => setReviewCup(cup)} className="bg-[#CC0000] hover:bg-[#AA0000] shrink-0 gap-1">
+            <Button size="sm" onClick={() => setReviewCup(cup)} className="bg-[#AB2328] hover:bg-[#881C1F] shrink-0 gap-1">
               <Pencil className="h-3.5 w-3.5" /> Granska
             </Button>
           </div>
@@ -616,7 +616,7 @@ function EmailJobsTab() {
         </Button>
         <Button
           size="sm"
-          className="bg-[#CC0000] hover:bg-[#AA0000] gap-1"
+          className="bg-[#AB2328] hover:bg-[#881C1F] gap-1"
           onClick={async () => {
             try {
               await api.admin.pollNow();
@@ -701,7 +701,7 @@ function EmailJobsTab() {
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setSelectedJob(null)}>Avbryt</Button>
-                <Button type="submit" disabled={creating} className="bg-[#CC0000] hover:bg-[#AA0000]">
+                <Button type="submit" disabled={creating} className="bg-[#AB2328] hover:bg-[#881C1F]">
                   {creating ? 'Skapar...' : 'Skapa cup'}
                 </Button>
               </div>
@@ -795,7 +795,7 @@ function SubscribersTab() {
           required
           className="flex-1"
         />
-        <Button type="submit" disabled={adding} className="bg-[#CC0000] hover:bg-[#AA0000] gap-1 shrink-0">
+        <Button type="submit" disabled={adding} className="bg-[#AB2328] hover:bg-[#881C1F] gap-1 shrink-0">
           {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
           Lägg till
         </Button>
@@ -866,7 +866,7 @@ export function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const pendingCount = cups.filter((c) => c.status === 'pending').length;
 
   if (loading) {
-    return <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#CC0000]" /></div>;
+    return <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#AB2328]" /></div>;
   }
 
   return (
@@ -888,7 +888,7 @@ export function AdminPanel({ onLogout }: { onLogout: () => void }) {
           <TabsTrigger value="pending">
             Väntande
             {pendingCount > 0 && (
-              <span className="ml-1.5 bg-[#CC0000] text-white text-xs rounded-full px-1.5 py-0.5">{pendingCount}</span>
+              <span className="ml-1.5 bg-[#AB2328] text-white text-xs rounded-full px-1.5 py-0.5">{pendingCount}</span>
             )}
           </TabsTrigger>
           <TabsTrigger value="all">Alla cuper</TabsTrigger>

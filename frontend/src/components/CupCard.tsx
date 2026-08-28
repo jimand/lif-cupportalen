@@ -95,8 +95,8 @@ export function CupCard({ cup, voted, onVoted }: CupCardProps) {
               disabled={voting}
               className={`flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors ${
                 voted
-                  ? 'text-[#CC0000] bg-red-50 hover:bg-red-100'
-                  : 'text-muted-foreground hover:text-[#CC0000] hover:bg-red-50'
+                  ? 'text-[#AB2328] bg-red-50 hover:bg-red-100'
+                  : 'text-muted-foreground hover:text-[#AB2328] hover:bg-red-50'
               }`}
               title={voted ? 'Klicka för att ångra din röst' : 'Tumme upp'}
             >
@@ -112,14 +112,14 @@ export function CupCard({ cup, voted, onVoted }: CupCardProps) {
               href={cup.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-sm text-[#CC0000] hover:text-[#AA0000] font-medium"
+              className="flex items-center gap-1.5 text-sm text-[#AB2328] hover:text-[#881C1F] font-medium"
             >
               <ExternalLink className="h-3.5 w-3.5 shrink-0" />
               Mer information
             </a>
             <a
               href={api.cups.icalUrl(cup.id)}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[#CC0000] font-medium"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[#AB2328] font-medium"
             >
               <CalendarPlus className="h-3.5 w-3.5 shrink-0" />
               Lägg i kalender
@@ -130,7 +130,7 @@ export function CupCard({ cup, voted, onVoted }: CupCardProps) {
           <div className="mt-3 pt-3 border-t">
             <a
               href={api.cups.icalUrl(cup.id)}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[#CC0000] font-medium"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[#AB2328] font-medium"
             >
               <CalendarPlus className="h-3.5 w-3.5 shrink-0" />
               Lägg i kalender

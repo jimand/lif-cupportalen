@@ -47,7 +47,7 @@ function SubscribeSection() {
               required
               className="flex-1"
             />
-            <Button type="submit" disabled={loading} className="bg-[#CC0000] hover:bg-[#AA0000] shrink-0">
+            <Button type="submit" disabled={loading} className="bg-[#AB2328] hover:bg-[#881C1F] shrink-0">
               {loading ? 'Sparar...' : 'Prenumerera'}
             </Button>
           </div>
@@ -67,7 +67,7 @@ export default function Home() {
       <header className="border-b bg-white sticky top-0 z-10 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Landvetter IF" className="h-10 w-auto" />
+            <img src="/logo.svg" alt="Landvetter IF" width={35} height={40} className="h-10 w-auto" />
             <div>
               <h1 className="font-bold text-lg leading-tight">Landvetter IF</h1>
               <p className="text-xs text-muted-foreground leading-tight">Cupportalen</p>

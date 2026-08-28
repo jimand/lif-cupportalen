@@ -98,7 +98,7 @@ export function CupRow({ cup, voted, onVoted }: CupRowProps) {
             href={cup.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-1.5 rounded text-muted-foreground hover:text-[#CC0000] transition-colors"
+            className="p-1.5 rounded text-muted-foreground hover:text-[#AB2328] transition-colors"
             title="Mer information"
           >
             <ExternalLink className="h-4 w-4" />
@@ -109,8 +109,8 @@ export function CupRow({ cup, voted, onVoted }: CupRowProps) {
           disabled={voting}
           className={`flex items-center gap-1 px-2 py-1.5 rounded transition-colors text-sm font-medium ${
             voted
-              ? 'text-[#CC0000] bg-red-50 hover:bg-red-100'
-              : 'text-muted-foreground hover:text-[#CC0000] hover:bg-red-50'
+              ? 'text-[#AB2328] bg-red-50 hover:bg-red-100'
+              : 'text-muted-foreground hover:text-[#AB2328] hover:bg-red-50'
           }`}
           title={voted ? 'Klicka för att ångra din röst' : 'Tumme upp'}
         >

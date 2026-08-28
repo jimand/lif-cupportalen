@@ -30,7 +30,7 @@ export default function AdminLogin() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <img src="/logo.png" alt="Landvetter IF" className="h-16 w-auto mx-auto mb-2" />
+          <img src="/logo.svg" alt="Landvetter IF" width={56} height={64} className="h-16 w-auto mx-auto mb-2" />
           <CardTitle>Admin-inloggning</CardTitle>
         </CardHeader>
         <CardContent>
@@ -46,7 +46,7 @@ export default function AdminLogin() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full bg-[#CC0000] hover:bg-[#AA0000]" disabled={loading}>
+            <Button type="submit" className="w-full bg-[#AB2328] hover:bg-[#881C1F]" disabled={loading}>
               {loading ? 'Loggar in...' : 'Logga in'}
             </Button>
           </form>

@@ -45,7 +45,7 @@ export function CupList() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-[#CC0000]" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#AB2328]" />
         </div>
       ) : error ? (
         <div className="text-center py-12 text-destructive">{error}</div>

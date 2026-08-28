@@ -32,8 +32,8 @@ export function CupTypeSelect({ value, onChange }: CupTypeSelectProps) {
           onClick={() => toggle(type)}
           className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
             selected.has(type)
-              ? 'bg-[#CC0000] text-white border-[#CC0000]'
-              : 'bg-white text-foreground border-input hover:border-[#CC0000]'
+              ? 'bg-[#AB2328] text-white border-[#AB2328]'
+              : 'bg-white text-foreground border-input hover:border-[#AB2328]'
           }`}
         >
           {type}

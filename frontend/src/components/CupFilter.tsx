@@ -39,11 +39,11 @@ export function CupFilter({ filters, onChange }: CupFilterProps) {
           onClick={() => setOpen((o) => !o)}
           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-sm font-medium transition-colors shrink-0 ${
             open && hasActiveFilters
-              ? 'bg-[#CC0000] text-white border-[#CC0000]'
+              ? 'bg-[#AB2328] text-white border-[#AB2328]'
               : open
               ? 'bg-muted border-input text-foreground'
               : hasActiveFilters
-              ? 'border-[#CC0000] text-[#CC0000] bg-white'
+              ? 'border-[#AB2328] text-[#AB2328] bg-white'
               : 'border-input text-muted-foreground bg-white hover:bg-muted'
           }`}
         >
@@ -83,8 +83,8 @@ export function CupFilter({ filters, onChange }: CupFilterProps) {
               }}
               className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                 active
-                  ? 'bg-[#CC0000] text-white border-[#CC0000]'
-                  : 'bg-white text-foreground border-input hover:border-[#CC0000]'
+                  ? 'bg-[#AB2328] text-white border-[#AB2328]'
+                  : 'bg-white text-foreground border-input hover:border-[#AB2328]'
               }`}
             >
               {t}
@@ -125,7 +125,7 @@ export function CupFilter({ filters, onChange }: CupFilterProps) {
           onClick={() => onChange({ ...filters, hide_past: filters.hide_past === 'false' ? 'true' : 'false' })}
           className={`inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border transition-colors ${
             filters.hide_past !== 'false'
-              ? 'bg-[#CC0000] text-white border-[#CC0000]'
+              ? 'bg-[#AB2328] text-white border-[#AB2328]'
               : 'bg-white text-muted-foreground border-input hover:bg-muted'
           }`}
         >

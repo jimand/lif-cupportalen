@@ -208,23 +208,35 @@ docker compose -f docker-compose.prod.yml cp \
 docker compose -f docker-compose.prod.yml cp \
   /tmp/restore/uploads-2026-08-28/. backend:/data/uploads/
 
-# 5. Aterstall .env vid behov (dekryptera forst)
+# 5. Rätta ägarskapet – OBLIGATORISKT
+#    "docker cp" lägger in filerna som root, men backend kör som appuser.
+#    Utan detta startar containern inte: SQLITE_READONLY_DIRECTORY.
+docker run --rm -v cupportalen_db_data:/data --user root \
+  cupportalen-backend chown -R appuser:appgroup /data
+
+# 6. Aterstall .env vid behov (dekryptera forst)
 gpg --batch --decrypt --passphrase "$BACKUP_PASSPHRASE" \
   --output .env /tmp/restore/env-2026-08-28.gpg
 chmod 600 .env
 
-# 6. Starta och verifiera
+# 7. Starta och verifiera
 docker compose -f docker-compose.prod.yml start backend
 docker compose -f docker-compose.prod.yml exec backend \
   sqlite3 /data/cups.db "PRAGMA integrity_check; SELECT COUNT(*) FROM cups;"
 docker compose -f docker-compose.prod.yml logs --tail=30 backend
 
-# 7. Stada
+# 8. Stada
 rm -rf /tmp/restore
 ```
 
 > Steg 3 skriver över den körande databasen. Ta en färsk kopia först om det
 > finns data som tillkommit efter backupen.
+>
+> Hoppa inte över steg 5. `docker cp` sätter root som ägare, medan backend kör
+> som `appuser` – utan chown kraschar containern med
+> `SqliteError: attempt to write a readonly database`
+> (`SQLITE_READONLY_DIRECTORY`). Verifierat 2026-08-28 vid ett skarpt
+> återställningstest.
 >
 > **Testa återställningen en gång innan du behöver den.** En backup som aldrig
 > har återställts har obekräftat värde.

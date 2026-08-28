@@ -1,0 +1,19 @@
+{
+  "name": "Landvetter IF – Cupportalen",
+  "short_name": "Cupportalen",
+  "description": "Hitta, rösta på och föreslå fotbollscuper för Landvetter IF:s lag.",
+  "lang": "sv-SE",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#AB2328",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

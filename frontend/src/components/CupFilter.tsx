@@ -1,5 +1,5 @@
 import { Search, X, SlidersHorizontal } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,9 +16,31 @@ const AGES = Array.from({ length: 12 }, (_, i) => i + 7);
 export function CupFilter({ filters, onChange }: CupFilterProps) {
   const activeCount = [filters.search, filters.age_class, filters.date_from, filters.date_to, filters.cup_type].filter(Boolean).length;
   const hasActiveFilters = activeCount > 0;
-  const [open, setOpen] = useState(hasActiveFilters);
+  const [open, setOpen] = useState(() => activeCount > 0);
+
+  // Sökrutan har egen state så att skrivandet känns direkt, och skickas uppåt
+  // först efter en paus. Utan detta gjordes en request per tangenttryckning.
+  const [searchInput, setSearchInput] = useState(filters.search || '');
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
+  // Håll fältet i synk när filtren ändras utifrån (t.ex. "Rensa filter",
+  // tillbaka-knappen eller en delad länk).
+  useEffect(() => {
+    setSearchInput(filters.search || '');
+  }, [filters.search]);
+
+  useEffect(() => {
+    const current = filtersRef.current.search || '';
+    if (searchInput === current) return;
+    const t = setTimeout(() => {
+      onChange({ ...filtersRef.current, search: searchInput || undefined });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput, onChange]);
 
   function clear() {
+    setSearchInput('');
     onChange({ sort: filters.sort, hide_past: filters.hide_past, cup_type: undefined });
   }
 
@@ -28,14 +50,18 @@ export function CupFilter({ filters, onChange }: CupFilterProps) {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Sök på namn eller ort..."
-            value={filters.search || ''}
-            onChange={(e) => onChange({ ...filters, search: e.target.value })}
+            type="search"
+            aria-label="Sök bland cuper"
+            placeholder="Sök på namn, ort eller ålder..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="pl-9"
           />
         </div>
         <button
           type="button"
+          aria-expanded={open}
+          aria-controls="cup-filter-panel"
           onClick={() => setOpen((o) => !o)}
           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-sm font-medium transition-colors shrink-0 ${
             open && hasActiveFilters
@@ -52,7 +78,7 @@ export function CupFilter({ filters, onChange }: CupFilterProps) {
         </button>
       </div>
 
-      {open && <div className="flex flex-wrap gap-2">
+      {open && <div id="cup-filter-panel" role="group" aria-label="Filtrera cuper" className="flex flex-wrap gap-2">
         <Select
           value={filters.age_class || 'all'}
           onValueChange={(v) => onChange({ ...filters, age_class: v === 'all' ? undefined : v })}
@@ -75,6 +101,7 @@ export function CupFilter({ filters, onChange }: CupFilterProps) {
             <button
               key={t}
               type="button"
+              aria-pressed={active}
               onClick={() => {
                 const next = new Set(selected);
                 if (active) next.delete(t); else next.add(t);
@@ -94,6 +121,7 @@ export function CupFilter({ filters, onChange }: CupFilterProps) {
 
         <Input
           type="date"
+          aria-label="Från datum"
           placeholder="Från datum"
           value={filters.date_from || ''}
           onChange={(e) => onChange({ ...filters, date_from: e.target.value })}
@@ -102,6 +130,7 @@ export function CupFilter({ filters, onChange }: CupFilterProps) {
 
         <Input
           type="date"
+          aria-label="Till datum"
           placeholder="Till datum"
           value={filters.date_to || ''}
           onChange={(e) => onChange({ ...filters, date_to: e.target.value })}
@@ -122,6 +151,8 @@ export function CupFilter({ filters, onChange }: CupFilterProps) {
         </Select>
 
         <button
+          type="button"
+          aria-pressed={filters.hide_past !== 'false'}
           onClick={() => onChange({ ...filters, hide_past: filters.hide_past === 'false' ? 'true' : 'false' })}
           className={`inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border transition-colors ${
             filters.hide_past !== 'false'

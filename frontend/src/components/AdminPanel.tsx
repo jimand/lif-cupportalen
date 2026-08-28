@@ -143,7 +143,7 @@ function CupForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1 col-span-2">
           <Label>Namn</Label>
           <Input value={form.name} onChange={(e) => set('name', e.target.value)} required />
@@ -316,7 +316,7 @@ function PendingReviewDialog({
             <Label>Ålder</Label>
             <AgeSelect value={form.age_classes} onChange={(v) => set('age_classes', v)} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>Ort</Label>
               <Input value={form.location} onChange={(e) => set('location', e.target.value)} />
@@ -390,7 +390,7 @@ function PendingReviewDialog({
               variant="outline"
               size="sm"
               onClick={() => setRejecting((r) => !r)}
-              className="gap-1 text-orange-600 border-orange-300 hover:bg-orange-50"
+              className="gap-1 text-orange-700 border-orange-300 hover:bg-orange-50"
             >
               <X className="h-3.5 w-3.5" /> Neka
             </Button>
@@ -427,7 +427,7 @@ function PendingTab({ cups, onRefresh }: { cups: Cup[]; onRefresh: () => void })
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="font-medium truncate">{cup.name}</p>
                 {!!cup.potential_duplicate && (
-                  <Badge variant="outline" className="text-orange-600 border-orange-400 shrink-0">Möjlig dubblett</Badge>
+                  <Badge variant="outline" className="text-orange-700 border-orange-400 shrink-0">Möjlig dubblett</Badge>
                 )}
               </div>
               <p className="text-sm text-muted-foreground">
@@ -515,7 +515,7 @@ function AllCupsTab({ cups, onRefresh }: { cups: Cup[]; onRefresh: () => void })
               </div>
               <p className="text-sm text-muted-foreground">{cup.location} · {formatDateRange(cup.start_date, cup.end_date)}</p>
               {cup.status === 'rejected' && cup.rejected_reason && (
-                <p className="text-xs text-red-500 mt-0.5 truncate" title={cup.rejected_reason}>
+                <p className="text-xs text-red-600 mt-0.5 truncate" title={cup.rejected_reason}>
                   Anledning: {cup.rejected_reason}
                 </p>
               )}
@@ -680,7 +680,7 @@ function EmailJobsTab() {
                 <Label>Ålder</Label>
                 <AgeSelect value={createForm.age_classes} onChange={(v) => setCreateForm((p: any) => ({ ...p, age_classes: v }))} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label>Ort *</Label>
                   <Input value={createForm.location} onChange={(e) => setCreateForm((p: any) => ({ ...p, location: e.target.value }))} required />

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { MapPin, Calendar, Users, ExternalLink, Paperclip, ThumbsUp, ArrowLeft, CalendarPlus, Share2 } from 'lucide-react';
+import { MapPin, Calendar, Users, ExternalLink, Paperclip, ThumbsUp, ArrowLeft, CalendarPlus, Share2, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { api, type Cup, type Attachment } from '@/lib/api';
+import { api, ApiError, type Cup, type Attachment } from '@/lib/api';
 import { formatDateRange } from '@/lib/utils';
 import { toast } from '@/components/ui/use-toast';
 import { Toaster } from '@/components/ui/toaster';
@@ -20,6 +20,7 @@ export default function CupDetail() {
   const [voted, setVoted] = useState(false);
   const [voting, setVoting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -32,8 +33,13 @@ export default function CupDetail() {
       setCup(cup);
       setAttachments(atts);
       setVoted(!!status[cupId]);
-    }).catch(() => {
+    }).catch((err) => {
       setCup(null);
+      setLoadError(
+        err instanceof ApiError && err.isNetworkError
+          ? 'Ingen kontakt med servern. Kontrollera din uppkoppling.'
+          : 'Cupen hittades inte.'
+      );
     }).finally(() => setLoading(false));
   }, [id]);
 
@@ -64,7 +70,7 @@ export default function CupDetail() {
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
           <img src="/logo.svg" alt="Landvetter IF" width={35} height={40} className="h-10 w-auto" />
           <div>
-            <h1 className="font-bold text-lg leading-tight">Landvetter IF</h1>
+            <p className="font-bold text-lg leading-tight">Landvetter IF</p>
             <p className="text-xs text-muted-foreground leading-tight">Cupportalen</p>
           </div>
         </div>
@@ -76,14 +82,16 @@ export default function CupDetail() {
         </Link>
 
         {loading ? (
-          <div className="py-12 text-center text-muted-foreground">Laddar...</div>
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-[#AB2328]" aria-label="Laddar cup" />
+          </div>
         ) : !cup ? (
-          <div className="py-12 text-center text-muted-foreground">Cupen hittades inte.</div>
+          <div className="py-12 text-center text-muted-foreground">{loadError || 'Cupen hittades inte.'}</div>
         ) : (
           <div className="space-y-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold">{cup.name}</h2>
+                <h1 className="text-2xl font-bold">{cup.name}</h1>
                 {cup.cup_type && (
                   <div className="flex flex-wrap gap-1 mt-1">
                     {cup.cup_type.split(',').map((t) => (

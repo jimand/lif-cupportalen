@@ -1,20 +1,49 @@
 const BASE = '/api';
 
+/**
+ * Fel från API:t. `status` är HTTP-statusen, eller 0 när förfrågan aldrig nådde
+ * servern (nätverksfel) – det gör att anroparen kan skilja "finns inte" från
+ * "ingen uppkoppling" istället för att visa samma meddelande för båda.
+ * `details` bär serverns fältvisa valideringsfel när sådana finns.
+ */
+export class ApiError extends Error {
+  status: number;
+  details?: Record<string, string[]>;
+
+  constructor(message: string, status: number, details?: Record<string, string[]>) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.details = details;
+  }
+
+  get isNetworkError(): boolean {
+    return this.status === 0;
+  }
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    ...options,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      ...options,
+    });
+  } catch (err) {
+    // AbortError ska bubbla vidare orörd så anroparen kan ignorera den.
+    if (err instanceof DOMException && err.name === 'AbortError') throw err;
+    throw new ApiError('Kunde inte nå servern', 0);
+  }
 
   if (res.status === 401 && path.startsWith('/admin')) {
     window.location.href = '/admin';
-    throw new Error('Session utgången');
+    throw new ApiError('Session utgången', 401);
   }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: 'Okänt fel' }));
-    throw new Error(body.error || `HTTP ${res.status}`);
+    throw new ApiError(body.error || `HTTP ${res.status}`, res.status, body.details);
   }
 
   return res.json();
@@ -111,10 +140,10 @@ function buildQuery(params: Record<string, string | undefined>): string {
 
 export const api = {
   cups: {
-    list: (filters?: CupFilters) =>
-      request<Cup[]>(`/cups${buildQuery({ ...filters })}`),
+    list: (filters?: CupFilters, signal?: AbortSignal) =>
+      request<Cup[]>(`/cups${buildQuery({ ...filters })}`, { signal }),
 
-    get: (id: number) => request<Cup>(`/cups/${id}`),
+    get: (id: number, signal?: AbortSignal) => request<Cup>(`/cups/${id}`, { signal }),
 
     icalUrl: (id: number) => `${BASE}/cups/${id}/ical`,
 
@@ -127,8 +156,8 @@ export const api = {
     vote: (id: number) =>
       request<{ thumbs_up: number; voted: boolean }>(`/cups/${id}/vote`, { method: 'POST' }),
 
-    voteStatus: (ids: number[]) =>
-      request<Record<number, boolean>>(`/cups/vote-status/check?ids=${ids.join(',')}`),
+    voteStatus: (ids: number[], signal?: AbortSignal) =>
+      request<Record<number, boolean>>(`/cups/vote-status/check?ids=${ids.join(',')}`, { signal }),
   },
 
   subscriptions: {

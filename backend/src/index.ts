@@ -13,10 +13,15 @@ import { startGmailPoller } from './services/gmail';
 
 if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET saknas i miljövariabler');
 if (!process.env.ADMIN_PASSWORD) throw new Error('ADMIN_PASSWORD saknas i miljövariabler');
+// Varning, inte krasch: ett felformaterat ADMIN_PASSWORD gör bara
+// inloggningen obrukbar (auth.ts svarar 500), medan ett kast här hade tagit
+// ner hela API:t – inklusive den publika cuplistan som inget har med
+// inloggning att göra.
 if (!process.env.ADMIN_PASSWORD.startsWith('$2')) {
-  throw new Error(
-    'ADMIN_PASSWORD måste vara en bcrypt-hash (börjar med $2). ' +
-    'Generera med: node -e "const b=require(\'bcryptjs\'); b.hash(\'DITT_LÖSENORD\', 10).then(console.log)"'
+  console.error(
+    `[${new Date().toISOString()}] VARNING: ADMIN_PASSWORD är inte en bcrypt-hash. ` +
+    'Admininloggningen kommer att misslyckas med 500. Generera en hash med: ' +
+    'node -e "const b=require(\'bcryptjs\'); b.hash(\'DITT_LÖSENORD\', 10).then(console.log)"'
   );
 }
 if (!process.env.FRONTEND_URL && process.env.NODE_ENV === 'production') {

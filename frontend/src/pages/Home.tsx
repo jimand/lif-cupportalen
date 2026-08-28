@@ -35,7 +35,7 @@ function SubscribeSection() {
       <p className="text-sm font-medium mb-1">Få ett mail när nya cuper godkänns</p>
       <p className="text-xs text-muted-foreground mb-3">Du kan avprenumerera när som helst via länken i mailet.</p>
       {done ? (
-        <p className="text-sm text-green-600 font-medium">Kolla din inkorg! Vi har skickat en bekräftelselänk till din e-postadress.</p>
+        <p className="text-sm text-green-700 font-medium">Kolla din inkorg! Vi har skickat en bekräftelselänk till din e-postadress.</p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-3 max-w-sm mx-auto">
           <div className="flex gap-2">

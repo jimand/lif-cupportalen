@@ -31,6 +31,7 @@ export function AgeSelect({ value, onChange }: AgeSelectProps) {
         <button
           key={age}
           type="button"
+          aria-pressed={selected.has(age)}
           onClick={() => toggle(age)}
           className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
             selected.has(age)

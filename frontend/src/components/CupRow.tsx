@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ThumbsUp, MapPin, Calendar, ExternalLink, Clock } from 'lucide-react';
+import { ThumbsUp, MapPin, Calendar, ExternalLink, Clock, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { api, type Cup } from '@/lib/api';
 import { formatDateRange, formatDate } from '@/lib/utils';
@@ -53,10 +53,12 @@ export function CupRow({ cup, voted, onVoted }: CupRowProps) {
   const deadlinePassed = cup.registration_deadline && new Date(cup.registration_deadline) < new Date();
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors">
+    <div className="flex items-start sm:items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 min-w-0">
-          {!!cup.recommended && <span title="Rekommenderas av Landvetter IF" className="shrink-0">⭐</span>}
+          {!!cup.recommended && (
+            <span role="img" aria-label="Rekommenderas av Landvetter IF" title="Rekommenderas av Landvetter IF" className="shrink-0">⭐</span>
+          )}
           <Link to={`/cups/${cup.id}`} className="font-semibold hover:underline truncate">
             {cup.name}
           </Link>
@@ -77,6 +79,18 @@ export function CupRow({ cup, voted, onVoted }: CupRowProps) {
             </span>
           )}
         </div>
+        {/* På mobil ryms inte badge-kolumnen till höger, men åldersgruppen är
+            det viktigaste urvalskriteriet och får inte försvinna där. */}
+        {(ageLabel || formatLabel) && (
+          <div className="flex sm:hidden flex-wrap gap-1 mt-1.5">
+            {ageLabel && (
+              <Badge variant="secondary" className="text-xs py-0 px-1.5">{ageLabel}</Badge>
+            )}
+            {formatLabel && (
+              <Badge variant="outline" className="text-xs py-0 px-1.5">{formatLabel}</Badge>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="hidden sm:flex flex-wrap gap-1 shrink-0 max-w-[220px] justify-end">
@@ -99,23 +113,31 @@ export function CupRow({ cup, voted, onVoted }: CupRowProps) {
             target="_blank"
             rel="noopener noreferrer"
             className="p-1.5 rounded text-muted-foreground hover:text-[#AB2328] transition-colors"
+            aria-label={`Mer information om ${cup.name} (öppnas i ny flik)`}
             title="Mer information"
           >
             <ExternalLink className="h-4 w-4" />
           </a>
         )}
         <button
+          type="button"
           onClick={handleVote}
           disabled={voting}
-          className={`flex items-center gap-1 px-2 py-1.5 rounded transition-colors text-sm font-medium ${
+          aria-pressed={voted}
+          aria-label={`${voted ? 'Ångra din röst på' : 'Rösta på'} ${cup.name} (${cup.thumbs_up} röster)`}
+          className={`flex items-center gap-1 px-2 py-1.5 rounded transition-colors text-sm font-medium disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ${
             voted
               ? 'text-[#AB2328] bg-red-50 hover:bg-red-100'
               : 'text-muted-foreground hover:text-[#AB2328] hover:bg-red-50'
           }`}
           title={voted ? 'Klicka för att ångra din röst' : 'Tumme upp'}
         >
-          <ThumbsUp className={`h-4 w-4 ${voted ? 'fill-current' : ''}`} />
-          <span>{cup.thumbs_up}</span>
+          {voting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <ThumbsUp className={`h-4 w-4 ${voted ? 'fill-current' : ''}`} />
+          )}
+          <span aria-hidden="true">{cup.thumbs_up}</span>
         </button>
       </div>
     </div>

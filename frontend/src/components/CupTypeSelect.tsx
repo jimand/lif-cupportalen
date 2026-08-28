@@ -29,6 +29,7 @@ export function CupTypeSelect({ value, onChange }: CupTypeSelectProps) {
         <button
           key={type}
           type="button"
+          aria-pressed={selected.has(type)}
           onClick={() => toggle(type)}
           className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
             selected.has(type)

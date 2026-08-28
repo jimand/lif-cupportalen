@@ -2,15 +2,45 @@
 <html lang="sv">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#AB2328" />
+
     <title>Landvetter IF – Cupportalen</title>
-    <meta name="description" content="Hitta och rekommendera fotbollscuper för Landvetter IF" />
+    <meta name="description" content="Hitta, rösta på och föreslå fotbollscuper för Landvetter IF:s lag. Filtrera på åldersklass, spelformat och datum." />
+    <link rel="canonical" href="https://cup.landvetterif.se/" />
+
+    <!-- Open Graph: utan dessa visar delning till WhatsApp och Facebook bara
+         en naken URL. og:image kräver en rasterbild (1200x630 PNG) – lägg den
+         som frontend/public/og-image.png och avkommentera taggarna nedan. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Landvetter IF Cupportalen" />
+    <meta property="og:locale" content="sv_SE" />
+    <meta property="og:title" content="Landvetter IF – Cupportalen" />
+    <meta property="og:description" content="Hitta, rösta på och föreslå fotbollscuper för Landvetter IF:s lag." />
+    <meta property="og:url" content="https://cup.landvetterif.se/" />
+    <!--
+    <meta property="og:image" content="https://cup.landvetterif.se/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Landvetter IF Cupportalen" />
+    -->
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Landvetter IF – Cupportalen" />
+    <meta name="twitter:description" content="Hitta, rösta på och föreslå fotbollscuper för Landvetter IF:s lag." />
+
     <script>
       (function () {
         var url = '%VITE_UMAMI_URL%';
         var id = '%VITE_UMAMI_WEBSITE_ID%';
-        if (!url || !id) return;
+        // Vite ersätter %VAR% bara när variabeln är definierad vid build.
+        // Annars står platshållaren kvar som literal, och en enkel
+        // sanningskontroll släpper igenom den – vilket ger en 404-request
+        // mot "%VITE_UMAMI_URL%/script.js" vid varje sidvisning.
+        if (!url || !id || url.charAt(0) === '%' || id.charAt(0) === '%') return;
         var s = document.createElement('script');
         s.defer = true;
         s.src = url + '/script.js';
